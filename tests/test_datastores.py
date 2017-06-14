@@ -103,3 +103,39 @@ class InMemoryTests(unittest.TestCase):
         
         self.assertEqual(set1_resources, set2_resources)
 
+    def test_from_datestamp(self):
+        data = [{'ridentifier': 'rid'+str(i), 'datestamp': '2017-06-0%s' % i} 
+                for i in range(10)]
+
+        sample_resources = [resources.get_sample_resource(**d)
+                            for d in data]
+
+        for resource in sample_resources:
+            self.store.add(resource)
+
+        set_resources = list(self.store.list(_from='2017-06-05'))
+        self.assertEqual(len(set_resources), 5)
+
+    def test_until_datestamp(self):
+        data = [{'ridentifier': 'rid'+str(i), 'datestamp': '2017-06-0%s' % i} 
+                for i in range(10)]
+
+        sample_resources = [resources.get_sample_resource(**d)
+                            for d in data]
+
+        for resource in sample_resources:
+            self.store.add(resource)
+
+        set_resources = list(self.store.list(until='2017-06-05'))
+        self.assertEqual(len(set_resources), 5)
+
+
+class DatestampToTupleTests(unittest.TestCase):
+    def test_best_case_conversion(self):
+        self.assertEqual(datastores.datestamp_to_tuple('2017-06-19'),
+                (2017, 6, 19))
+
+    def test_non_numerical_strings_raise_typeerror(self):
+        self.assertRaises(ValueError,
+                lambda: datastores.datestamp_to_tuple('2017-06-X'))
+

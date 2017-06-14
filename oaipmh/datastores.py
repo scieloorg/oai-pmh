@@ -37,7 +37,7 @@ res = Resource(**sample)
 """
 Resource = namedtuple('Resource', '''ridentifier datestamp setspec title
         creator subject description publisher contributor date type format
-        identifier source language relation rights ''')
+        identifier source language relation rights''')
 
 
 class DoesNotExistError(Exception):
@@ -60,13 +60,18 @@ class DataStore(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def list(self, sets: List[str] = None, offset: int = 0,
-            count: int = 1000) -> Iterable[Resource]:
+            count: int = 1000, _from: str = None, 
+            until: str = None) -> Iterable[Resource]:
         """Produz uma coleção dos recursos contidos em todos os ``sets``.
 
         Os argumentos ``offset`` e ``count`` permitem que o a coleção seja 
         produzida por partes.
         """
         return NotImplemented
+
+
+def datestamp_to_tuple(datestamp):
+    return tuple(map(int, datestamp.split('-')))
 
 
 class InMemory(DataStore):
@@ -82,16 +87,19 @@ class InMemory(DataStore):
         except KeyError:
             raise DoesNotExistError() from None
 
-    def list(self, sets=None, offset=0, count=1000):
+    def list(self, sets=None, offset=0, count=1000, _from=None, until=None):
+        ds2tup = datestamp_to_tuple
         sets = set(sets) if sets else set()
-        c = 0  # total de resources produzidos
-        for i, resource in enumerate(self.data.values()):
-            if i < offset or (sets and not sets.intersection(
-                set(resource.setspec))):
-                continue
-            elif c >= count:
-                return
-            else:
-                c += 1
-                yield resource
 
+        ds = self.data.values()
+        if sets:
+            ds = (res for res in ds if sets.intersection(set(res.setspec)))
+        if _from:
+            ds = (res for res in ds if ds2tup(res.datestamp) >= ds2tup(_from))
+        if until:
+            ds = (res for res in ds if ds2tup(res.datestamp) < ds2tup(until))
+
+        ds = (res for i, res in enumerate(ds) if i >= offset)
+        ds = (res for i, res in enumerate(ds) if i < count)
+        yield from ds
+        
