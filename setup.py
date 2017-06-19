@@ -15,6 +15,8 @@ INSTALL_REQUIRES = [
         'pyramid >= 1.8.3',
         'pyramid-chameleon >= 0.3',
         'pymongo >= 3.4.0',
+        'lxml >= 3.8.0',
+        'picles.plumber >= 0.11',
         ]
 TESTS_REQUIRE = []
 
