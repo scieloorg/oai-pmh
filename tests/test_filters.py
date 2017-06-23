@@ -147,67 +147,6 @@ class ListMetadataFormatsTests(unittest.TestCase):
         self.assertEqual(etree.tostring(resp_xml), xml_str.encode('utf-8'))
 
 
-class HeaderTests(unittest.TestCase):
-
-    def test_header_with_three_subelements(self):
-        data = {
-            'identifier': 'xpto',
-            'datestamp': datetime(2014, 2, 12, 10, 55, 0),
-            'setSpec': ['cs', 'math']
-        }
-        root = etree.Element('root')
-        xml, data = filters.header((root, data))
-
-        xml_str = '<root>'
-        xml_str += '<header>'
-        xml_str += '<identifier>xpto</identifier>'
-        xml_str += '<datestamp>2014-02-12</datestamp>'
-        xml_str += '<setSpec>cs</setSpec>'
-        xml_str += '<setSpec>math</setSpec>'
-        xml_str += '</header>'
-        xml_str += '</root>'
-
-        self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
-
-    def test_deleted_record(self):
-        data = {
-            'identifier': 'xpto',
-            'datestamp': datetime(2014, 2, 12, 10, 55, 0),
-            'setSpec': ['cs', 'math'],
-            'deleted': True,
-        }
-        root = etree.Element('root')
-        xml, data = filters.header((root, data))
-
-        self.assertEqual(xml.xpath('/root/header/@status')[0], 'deleted')
-
-    def test_deleted_markers_ignore_str_values(self):
-        for val in ['True', 'False']:
-            data = {
-                'identifier': 'xpto',
-                'datestamp': datetime(2014, 2, 12, 10, 55, 0),
-                'setSpec': ['cs', 'math'],
-                'deleted': val,
-            }
-            root = etree.Element('root')
-            xml, data = filters.header((root, data))
-
-            self.assertEqual(xml.xpath('/root/header/@status'), [])
-
-    def test_deleted_markers_ignore_int_values(self):
-        for val in [0, 1]:
-            data = {
-                'identifier': 'xpto',
-                'datestamp': datetime(2014, 2, 12, 10, 55, 0),
-                'setSpec': ['cs', 'math'],
-                'deleted': val,
-            }
-            root = etree.Element('root')
-            xml, data = filters.header((root, data))
-
-            self.assertEqual(xml.xpath('/root/header/@status'), [])
-
-
 class TestListIdentifiersPipe(unittest.TestCase):
 
     @unittest.skip('refatorar para eliminar o uso de threadlocals')
@@ -229,8 +168,7 @@ class TestListIdentifiersPipe(unittest.TestCase):
         }
         root = etree.Element('root')
 
-        pipe = filters.ListIdentifiersPipe()
-        xml, data = pipe.transform((root, data))
+        xml, data = filters.listidentifiers((root, data))
 
         xml_str = '<root>'
         xml_str += '<ListIdentifiers>'
@@ -248,6 +186,82 @@ class TestListIdentifiersPipe(unittest.TestCase):
         xml_str += '</root>'
 
         self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
+
+    def test_header_with_three_subelements(self):
+        data = {
+                'resources': [
+                    {
+                        'ridentifier': 'xpto',
+                        'datestamp': datetime(2014, 2, 12, 10, 55, 0),
+                        'setspec': ['cs', 'math']
+                    },
+                ]
+        }
+        root = etree.Element('root')
+        xml, data = filters.listidentifiers((root, data))
+
+        xml_str = '<root>'
+        xml_str += '<ListIdentifiers>'
+        xml_str += '<header>'
+        xml_str += '<identifier>xpto</identifier>'
+        xml_str += '<datestamp>2014-02-12</datestamp>'
+        xml_str += '<setSpec>cs</setSpec>'
+        xml_str += '<setSpec>math</setSpec>'
+        xml_str += '</header>'
+        xml_str += '</ListIdentifiers>'
+        xml_str += '</root>'
+
+        self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
+
+    def test_deleted_record(self):
+        data = {
+                'resources': [
+                    {
+                        'ridentifier': 'xpto',
+                        'datestamp': datetime(2014, 2, 12, 10, 55, 0),
+                        'setspec': ['cs', 'math'],
+                        'deleted': True,
+                    }
+                ]
+        }
+        root = etree.Element('root')
+        xml, data = filters.listidentifiers((root, data))
+
+        self.assertEqual(xml.xpath('/root/ListIdentifiers/header/@status')[0], 'deleted')
+
+    def test_deleted_markers_ignore_str_values(self):
+        for val in ['True', 'False']:
+            data = {
+                    'resources': [
+                        {
+                            'ridentifier': 'xpto',
+                            'datestamp': datetime(2014, 2, 12, 10, 55, 0),
+                            'setspec': ['cs', 'math'],
+                            'deleted': val,
+                        }
+                    ]
+            }
+            root = etree.Element('root')
+            xml, data = filters.listidentifiers((root, data))
+
+            self.assertEqual(xml.xpath('/root/ListIdentifiers/header/@status'), [])
+
+    def test_deleted_markers_ignore_int_values(self):
+        for val in [0, 1]:
+            data = {
+                    'resources': [
+                        {
+                            'ridentifier': 'xpto',
+                            'datestamp': datetime(2014, 2, 12, 10, 55, 0),
+                            'setspec': ['cs', 'math'],
+                            'deleted': val,
+                        }
+                    ]
+            }
+            root = etree.Element('root')
+            xml, data = filters.listidentifiers((root, data))
+
+            self.assertEqual(xml.xpath('/root/ListIdentifiers/header/@status'), [])
 
 
 class TestSetPipe(unittest.TestCase):

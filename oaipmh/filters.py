@@ -60,16 +60,13 @@
         }
 
 """
-import logging
-from unicodedata import normalize
 import re
+import logging
+from datetime import datetime
+from unicodedata import normalize
 
 import plumber
-import pyramid
-
 from lxml import etree
-from plumber import precondition
-from datetime import datetime
 
 
 LOGGER = logging.getLogger(__name__)
@@ -264,68 +261,26 @@ def listmetadataformats(item):
 
 
 @plumber.filter
-def header(item):
-    """Acrescenta o elemento ``/OAI-PMH/header`` e seus elementos-filhos.
-
-    Essa função espera receber um dicionário de dados conforme o exemplo:
-
-    ..code-block:: python
-
-        data = {
-            'identifier': 'oai:arXiv:cs/0112017',
-            'datestamp': datetime(2014, 2, 12, 10, 55, 0),
-            'setSpec': ['cs', 'math'],
-            'deleted': True,  # opcional
-        }
-
-    Saiba mais em:
-      - https://www.openarchives.org/OAI/2.0/openarchivesprotocol.htm#Record
-    """
+def listidentifiers(item):
     xml, data = item
+    listidentifiers_elem = etree.SubElement(xml, 'ListIdentifiers')
 
-    header = etree.SubElement(xml, 'header')
-    if data.get('deleted', False) is True:
-        header.attrib['status'] = 'deleted'
+    for resource in data.get('resources', []):
+        header = etree.SubElement(listidentifiers_elem, 'header')
+        if resource.get('deleted', False) is True:
+            header.attrib['status'] = 'deleted'
 
-    identifier = etree.SubElement(header, 'identifier')
-    identifier.text = data['identifier']
+        identifier = etree.SubElement(header, 'identifier')
+        identifier.text = resource.get('ridentifier')
 
-    datestamp = etree.SubElement(header, 'datestamp')
-    datestamp.text = data['datestamp'].strftime('%Y-%m-%d')
+        datestamp = etree.SubElement(header, 'datestamp')
+        datestamp.text = resource.get('datestamp').strftime('%Y-%m-%d')
 
-    for _set in data['setSpec']:
-        set_spec = etree.SubElement(header, 'setSpec')
-        set_spec.text = _set
+        for _set in resource.get('setspec', []):
+            setspec = etree.SubElement(header, 'setSpec')
+            setspec.text = _set
 
     return (xml, data)
-
-
-class ListIdentifiersPipe(plumber.Filter):
-    'TODO: essa função faz sentido?'
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'ListIdentifiers')
-
-        ppl = plumber.Pipeline(header)
-
-        books = data.get('books')
-        items = ((sub, book) for book in books)
-
-        results = ppl.run(items)
-
-        for header in results:
-            pass
-
-        ppl = plumber.Pipeline(
-            ResumptionTokenPipe()
-        )
-
-        resumptionToken = ppl.run([[sub, data]])
-
-        for rt in resumptionToken:
-            pass
-
-        return (xml, data)
 
 
 class SetPipe(plumber.Filter):
@@ -355,15 +310,6 @@ class ListSetsPipe(plumber.Filter):
         for _set in results:
             sub.append(_set)
 
-        ppl = plumber.Pipeline(
-            ResumptionTokenPipe()
-        )
-
-        resumptionToken = ppl.run([[sub, data]])
-
-        for rt in resumptionToken:
-            pass
-
         return (xml, data)
 
 
@@ -375,7 +321,7 @@ class MetadataPipe(plumber.Filter):
     schemaLocation += " http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
     attrib = {"{%s}schemaLocation" % xsi: schemaLocation}
 
-    @precondition(deleted_precond)
+    @plumber.precondition(deleted_precond)
     def transform(self, item):
         xml, data = item
         metadata = etree.SubElement(xml, 'metadata')
@@ -469,37 +415,6 @@ class ListRecordsPipe(plumber.Filter):
 
         for record in results:
             sub.append(record)
-
-        ppl = plumber.Pipeline(
-            ResumptionTokenPipe()
-        )
-
-        resumptionToken = ppl.run([[sub, data]])
-
-        for rt in resumptionToken:
-            pass
-
-        return (xml, data)
-
-
-class ResumptionTokenPipe(plumber.Filter):
-
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'resumptionToken')
-
-        try:
-            total_books = data.get('books').count()
-        except (AttributeError, TypeError):
-            total_books = len(data.get('books', []))
-
-        settings = pyramid.threadlocal.get_current_registry().settings
-        items_per_page = int(settings['items_per_page'])
-        resumption_token = int(data['request'].get('resumptionToken', 0))
-        finished = items_per_page * (resumption_token + 1) >= total_books
-
-        if not finished:
-            sub.text = str(resumption_token + 1)
 
         return (xml, data)
 
