@@ -310,53 +310,6 @@ class TestListSetsPipe(unittest.TestCase):
         self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
 
 
-class TestMetadataPipe(unittest.TestCase):
-
-    @unittest.skip('melhorar a estratégia de comparação')
-    def test_metadata_pipe_add_record_as_dublin_core(self):
-        data = {
-            'title': 'title',
-            'creators': {
-                'collaborator': [['collaborator', None]],
-                'organizer': [['organizer', None]]
-            },
-            'description': 'description',
-            'publisher': 'publisher',
-            'date': '2014',
-            'formats': ['pdf', 'epub'],
-            'identifier': 'identifier',
-            'language': 'pt'
-        }
-        root = etree.Element('root')
-
-        pipe = filters.MetadataPipe()
-        xml, data = pipe.transform((root, data))
-
-        xml_str = '<root>'
-        xml_str += '<metadata>'
-        xml_str += '<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"'
-        xml_str += ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-        xml_str += ' xmlns:dc="http://purl.org/dc/elements/1.1/"'
-        xml_str += ' xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/'
-        xml_str += ' http://www.openarchives.org/OAI/2.0/oai_dc.xsd">'
-        xml_str += '<dc:title>title</dc:title>'
-        xml_str += '<dc:creator>organizer</dc:creator>'
-        xml_str += '<dc:contributor>collaborator</dc:contributor>'
-        xml_str += '<dc:description>description</dc:description>'
-        xml_str += '<dc:publisher>publisher</dc:publisher>'
-        xml_str += '<dc:date>2014</dc:date>'
-        xml_str += '<dc:type>book</dc:type>'
-        xml_str += '<dc:format>pdf</dc:format>'
-        xml_str += '<dc:format>epub</dc:format>'
-        xml_str += '<dc:identifier>http://books.scielo.org/id/identifier</dc:identifier>'
-        xml_str += '<dc:language>pt</dc:language>'
-        xml_str += '</oai_dc:dc>'
-        xml_str += '</metadata>'
-        xml_str += '</root>'
-
-        self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
-
-
 class TestRecordPipe(unittest.TestCase):
 
     @unittest.skip('melhorar a estratégia de comparação')
@@ -376,8 +329,7 @@ class TestRecordPipe(unittest.TestCase):
             'language': 'pt'
         }
 
-        pipe = filters.RecordPipe()
-        xml = pipe.transform(data)
+        xml = filters.record(data)
 
         xml_str = '<record>'
         xml_str += '<header>'
@@ -433,8 +385,7 @@ class TestGetRecordPipe(unittest.TestCase):
         }
 
         root = etree.Element('root')
-        pipe = filters.GetRecordPipe()
-        xml, data = pipe.transform((root, data))
+        xml, data = filters.record((root, data))
 
         xml_str = '<root>'
         xml_str += '<GetRecord>'
@@ -470,7 +421,7 @@ class TestGetRecordPipe(unittest.TestCase):
         self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
 
 
-class TestListRecordsPipe(unittest.TestCase):
+class ListRecordsTests(unittest.TestCase):
 
     @unittest.skip('refatorar para eliminar o uso de threadlocals')
     def test_list_records_pipe_add_many_records_node(self):
@@ -494,8 +445,7 @@ class TestListRecordsPipe(unittest.TestCase):
         }
 
         root = etree.Element('root')
-        pipe = filters.ListRecordsPipe()
-        xml, data = pipe.transform((root, data))
+        xml, data = filters.listrecords((root, data))
 
         xml_str = '<root>'
         xml_str += '<ListRecords>'

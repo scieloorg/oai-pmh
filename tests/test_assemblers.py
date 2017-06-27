@@ -118,3 +118,51 @@ class MakeListIdentifiersTests(SchemaValidatorMixin, unittest.TestCase):
                 assemblers.make_list_identifiers(self.request,
                     self.repository, self.resources)) 
 
+
+class MakeListRecordsTests(SchemaValidatorMixin, unittest.TestCase):
+    def setUp(self):
+        self.repository = {
+            'repositoryName': 'SciELO Brazil',
+            'baseURL': 'https://oai.scielo.br/',
+            'protocolVersion': '2.0',
+            'adminEmail': 'scielo-dev@googlegroups.com',
+            'earliestDatestamp': datetime(1909, 4, 1),
+            'deletedRecord': 'no',
+            'granularity': 'YYYY-MM-DD',
+        }
+        self.request = {'verb': 'ListRecords'}
+        self.resources = [
+                {
+                    'ridentifier': 'oai:arXiv:cs/0112017',
+                    'datestamp': datetime(2017, 6, 14),
+                    'setspec': ['set1', 'set2'],
+                    'title': [('en', 'MICROBIAL COUNTS OF DARK RED...')],
+                    'creator': ['Vieira, Francisco Cleber Sousa'],
+                    'subject': [('en', 'bacteria'), ('pt', 'bactéria')],
+                    'description': [('en', 'The number of colony forming units (CFU)...')],
+                    'publisher': ['Sociedade Brasileira de Microbiologia'],
+                    'contributor': ['Evans, R. J.'],
+                    'date': ['1998-09-01'],
+                    'type': ['research-article'],
+                    'format': ['text/html'],
+                    'identifier': ['https://ref.scielo.org/7vy47j'],
+                    'source': ['Revista de Microbiologia v.29 n.3 1998'],
+                    'language': ['en'],
+                    'relation': [],
+                    'rights': ['http://creativecommons.org/licenses/by-nc/4.0/'],
+                },
+        ]
+
+    @patch('oaipmh.filters.datetime')
+    def test_correct_usage(self, mock_utc):
+        mock_utc.utcnow.return_value = datetime(2017, 6, 22, 19, 1, 43)
+        expected = b''
+        self.assertEqual(expected,
+                assemblers.make_list_records(self.request,
+                    self.repository, self.resources)) 
+
+    def test_xml_validity(self):
+        self.assertXMLIsValid(
+                assemblers.make_list_records(self.request,
+                    self.repository, self.resources)) 
+

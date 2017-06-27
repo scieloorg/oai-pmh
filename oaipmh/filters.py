@@ -68,6 +68,8 @@ from unicodedata import normalize
 import plumber
 from lxml import etree
 
+from .formatters import oai_dc
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -220,9 +222,6 @@ def identify(item):
     return (xml, data)
 
 
-#----------------------
-# Atende exclusivamente ao verbo ListMetadataFormats
-#----------------------
 @plumber.filter
 def listmetadataformats(item):
     """Acrescenta o elemento ``/OAI-PMH/ListMetadataFormats`` e seus
@@ -260,27 +259,45 @@ def listmetadataformats(item):
     return (xml, data)
 
 
+#subpipeline
+@plumber.filter
+def header(item):
+    """Adiciona o elemento ``header`` contendo metadados do recurso no repo.
+
+    Esse filtro é parte integrante de um *sub pipeline* que opera em uma
+    sequência de *resources*. 
+    """
+    xml, data = item
+
+    header_element = etree.SubElement(xml, 'header')
+    if data.get('deleted', False) is True:
+        header_element.attrib['status'] = 'deleted'
+
+    identifier = etree.SubElement(header_element, 'identifier')
+    identifier.text = data.get('ridentifier')
+
+    datestamp = etree.SubElement(header_element, 'datestamp')
+    datestamp.text = data.get('datestamp').strftime('%Y-%m-%d')
+
+    for _set in data.get('setspec', []):
+        setspec = etree.SubElement(header_element, 'setSpec')
+        setspec.text = _set
+
+    return item
+
+
 @plumber.filter
 def listidentifiers(item):
     xml, data = item
     listidentifiers_elem = etree.SubElement(xml, 'ListIdentifiers')
 
-    for resource in data.get('resources', []):
-        header = etree.SubElement(listidentifiers_elem, 'header')
-        if resource.get('deleted', False) is True:
-            header.attrib['status'] = 'deleted'
+    resources_data = ((listidentifiers_elem, resource)
+                      for resource in data.get('resources', []))
 
-        identifier = etree.SubElement(header, 'identifier')
-        identifier.text = resource.get('ridentifier')
+    add_headers_ppl = plumber.Pipeline(header)
+    for _ in add_headers_ppl.run(resources_data): pass
 
-        datestamp = etree.SubElement(header, 'datestamp')
-        datestamp.text = resource.get('datestamp').strftime('%Y-%m-%d')
-
-        for _set in resource.get('setspec', []):
-            setspec = etree.SubElement(header, 'setSpec')
-            setspec.text = _set
-
-    return (xml, data)
+    return item
 
 
 class SetPipe(plumber.Filter):
@@ -313,79 +330,18 @@ class ListSetsPipe(plumber.Filter):
         return (xml, data)
 
 
-class MetadataPipe(plumber.Filter):
-    xmlns = "http://www.openarchives.org/OAI/2.0/oai_dc/"
-    dc = "http://purl.org/dc/elements/1.1/"
-    xsi = "http://www.w3.org/2001/XMLSchema-instance"
-    schemaLocation = "http://www.openarchives.org/OAI/2.0/oai_dc/"
-    schemaLocation += " http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
-    attrib = {"{%s}schemaLocation" % xsi: schemaLocation}
+def make_record(record_data):
+    """Produz uma nova estrutura XML representando ``record_data``.
+    """
+    record = etree.Element('record')
 
-    @plumber.precondition(deleted_precond)
-    def transform(self, item):
-        xml, data = item
-        metadata = etree.SubElement(xml, 'metadata')
-        oai_rec = etree.SubElement(metadata, '{%s}dc' % self.xmlns,
-            nsmap={'oai_dc': self.xmlns, 'dc': self.dc, 'xsi': self.xsi},
-            attrib=self.attrib
-        )
+    ppl = plumber.Pipeline(
+        header,
+    )
+    xmltree, _ = next(ppl.run((record, record_data), rewrap=True))
+    xmltree.append(oai_dc.make_metadata(record_data))
 
-        title = etree.SubElement(oai_rec, '{%s}title' % self.dc)
-        title.text = data.get('title')
-
-        creator = etree.SubElement(oai_rec, '{%s}creator' % self.dc)
-        try:
-            creator.text = data.get('creators').get('organizer')[0][0]
-        except TypeError:
-            oai_rec.remove(creator)
-            logger.info("Can't get organizer for id %s" % data.get('identifier'))
-
-        contributor = etree.SubElement(oai_rec, '{%s}contributor' % self.dc)
-        try:
-            contributor.text = data.get('creators').get('collaborator')[0][0]
-        except TypeError:
-            oai_rec.remove(contributor)
-            logger.info("Can't get collaborator for id %s" % data.get('identifier'))
-
-        description = etree.SubElement(oai_rec, '{%s}description' % self.dc)
-        description.text = data.get('description')
-
-        publisher = etree.SubElement(oai_rec, '{%s}publisher' % self.dc)
-        publisher.text = data.get('publisher')
-
-        date = etree.SubElement(oai_rec, '{%s}date' % self.dc)
-        date.text = data.get('date')
-
-        _type = etree.SubElement(oai_rec, '{%s}type' % self.dc)
-        _type.text = 'book'
-
-        for f in data.get('formats', []):
-            format = etree.SubElement(oai_rec, '{%s}format' % self.dc)
-            format.text = f
-
-        identifier = etree.SubElement(oai_rec, '{%s}identifier' % self.dc)
-        identifier.text = 'http://books.scielo.org/id/%s' % data.get('identifier')
-
-        language = etree.SubElement(oai_rec, '{%s}language' % self.dc)
-        language.text = data.get('language')
-
-        return (xml, data)
-
-
-class RecordPipe(plumber.Filter):
-    def transform(self, data):
-        record = etree.Element('record')
-
-        ppl = plumber.Pipeline(
-            header,
-            MetadataPipe()
-        )
-        results = ppl.run([(record, data)])
-
-        for result in results:
-            pass
-
-        return record
+    return xmltree
 
 
 class GetRecordPipe(plumber.Filter):
@@ -393,30 +349,25 @@ class GetRecordPipe(plumber.Filter):
         xml, data = item
         sub = etree.SubElement(xml, 'GetRecord')
 
-        ppl = plumber.Pipeline(
-            RecordPipe(),
-        )
-        results = ppl.run(data.get('books'))
-        record = next(results)
-        sub.append(record)
+        records = (make_record(resource)
+                   for resource in data.get('resources', []))
+        for rec in records:
+            sub.append(rec)
 
-        return (xml, data)
+        return item
 
 
-class ListRecordsPipe(plumber.Filter):
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'ListRecords')
+@plumber.filter
+def listrecords(item):
+    xml, data = item
+    sub = etree.SubElement(xml, 'ListRecords')
 
-        ppl = plumber.Pipeline(
-            RecordPipe(),
-        )
-        results = ppl.run(data.get('books'))
+    records = (make_record(resource)
+               for resource in data.get('resources', []))
+    for rec in records:
+        sub.append(rec)
 
-        for record in results:
-            sub.append(record)
-
-        return (xml, data)
+    return item
 
 
 class BadVerbPipe(plumber.Filter):
