@@ -5,7 +5,14 @@ from datetime import datetime
 from oaipmh import assemblers
 
 
-class MakeIdentifyTests(unittest.TestCase):
+class SchemaValidatorMixin:
+    def assertXMLIsValid(self, xml_bytes):
+        validator = assemblers.OAIValidator(xml_bytes)
+        if not validator.validate():
+            raise self.failureException('the XML is invalid')
+
+
+class MakeIdentifyTests(SchemaValidatorMixin, unittest.TestCase):
     def setUp(self):
         self.repository = {
             'repositoryName': 'SciELO Brazil',
@@ -25,8 +32,12 @@ class MakeIdentifyTests(unittest.TestCase):
         self.assertEqual(expected,
                 assemblers.make_identify(self.request, self.repository))
 
+    def test_xml_validity(self):
+        self.assertXMLIsValid(
+                assemblers.make_identify(self.request, self.repository))
 
-class MakeListMetadataFormatsTests(unittest.TestCase):
+
+class MakeListMetadataFormatsTests(SchemaValidatorMixin, unittest.TestCase):
     def setUp(self):
         self.repository = {
             'repositoryName': 'SciELO Brazil',
@@ -52,10 +63,15 @@ class MakeListMetadataFormatsTests(unittest.TestCase):
         expected = b'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<OAI-PMH xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.openarchives.org/OAI/2.0/" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"><responseDate>2017-06-22T19:01:43Z</responseDate><request verb="ListMetadataFormats">https://oai.scielo.br/</request><ListMetadataFormats><metadataFormat><metadataPrefix>oai_dc</metadataPrefix><schema>http://www.openarchives.org/OAI/2.0/oai_dc.xsd</schema><metadataNamespace>http://www.openarchives.org/OAI/2.0/oai_dc/</metadataNamespace></metadataFormat></ListMetadataFormats></OAI-PMH>'
         self.assertEqual(expected,
                 assemblers.make_list_metadata_formats(self.request,
-                    self.repository, self.formats)) 
+                    self.repository, self.formats))
+
+    def test_xml_validity(self):
+        self.assertXMLIsValid(
+                assemblers.make_list_metadata_formats(self.request,
+                    self.repository, self.formats))
 
 
-class MakeListIdentifiersTests(unittest.TestCase):
+class MakeListIdentifiersTests(SchemaValidatorMixin, unittest.TestCase):
     def setUp(self):
         self.repository = {
             'repositoryName': 'SciELO Brazil',
@@ -94,6 +110,11 @@ class MakeListIdentifiersTests(unittest.TestCase):
         mock_utc.utcnow.return_value = datetime(2017, 6, 22, 19, 1, 43)
         expected = b'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<OAI-PMH xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.openarchives.org/OAI/2.0/" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"><responseDate>2017-06-22T19:01:43Z</responseDate><request verb="ListMetadataFormats">https://oai.scielo.br/</request><ListIdentifiers><header><identifier>oai:arXiv:cs/0112017</identifier><datestamp>2017-06-14</datestamp><setSpec>set1</setSpec><setSpec>set2</setSpec></header></ListIdentifiers></OAI-PMH>'
         self.assertEqual(expected,
+                assemblers.make_list_identifiers(self.request,
+                    self.repository, self.resources)) 
+
+    def test_xml_validity(self):
+        self.assertXMLIsValid(
                 assemblers.make_list_identifiers(self.request,
                     self.repository, self.resources)) 
 
