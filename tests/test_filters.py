@@ -5,25 +5,25 @@ from datetime import datetime
 from pyramid.registry import Registry
 from lxml import etree
 
-from oaipmh import filters
+from oaipmh import serializers
 
 
 class RootTests(unittest.TestCase):
     def test_returns_pair_of_values(self):
         data = {}
-        resp = filters.root(data)
+        resp = serializers.root(data)
 
         self.assertEqual(len(resp), 2)
 
     def test_root_element_tagname(self):
         data = {}
-        resp_xml, _ = filters.root(data)
+        resp_xml, _ = serializers.root(data)
         
         self.assertEqual(resp_xml.tag, 'OAI-PMH')
 
     def test_root_element_attributes(self):
         data = {}
-        resp_xml, _ = filters.root(data)
+        resp_xml, _ = serializers.root(data)
         
         expected_attrs = {
                 '{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd',
@@ -37,16 +37,16 @@ class ResponseDateTests(unittest.TestCase):
     def test_responseDate_element_is_added(self):
         xml = etree.Element('root')
         
-        resp_xml, _ = filters.responsedate((xml, {}))
+        resp_xml, _ = serializers.responsedate((xml, {}))
         self.assertEqual(len(resp_xml), 1)
         self.assertEqual(resp_xml[0].tag, 'responseDate')
 
-    @patch('oaipmh.filters.datetime')
+    @patch('oaipmh.serializers.datetime')
     def test_responseDate_is_UTC(self, mock_utc):
         mock_utc.utcnow.return_value = datetime(2014, 2, 6, 15, 17, 0)
         xml = etree.Element('root')
         
-        resp_xml, _ = filters.responsedate((xml, {}))
+        resp_xml, _ = serializers.responsedate((xml, {}))
         self.assertEqual(resp_xml[0].text, '2014-02-06T15:17:00Z')
 
 
@@ -58,7 +58,7 @@ class RequestTests(unittest.TestCase):
         }
         xml = etree.Element('root')
         
-        resp_xml, _ = filters.request((xml, data))
+        resp_xml, _ = serializers.request((xml, data))
 
         xml_str = '<root><request verb="Identifier">http://books.scielo.org/oai/</request></root>'
 
@@ -71,7 +71,7 @@ class RequestTests(unittest.TestCase):
         }
         xml = etree.Element('root')
         
-        resp_xml, _ = filters.request((xml, data))
+        resp_xml, _ = serializers.request((xml, data))
         self.assertEqual(resp_xml[0].attrib['foo'], 'bar') 
 
 
@@ -91,7 +91,7 @@ class IdentifyTests(unittest.TestCase):
         }
         xml = etree.Element('root')
 
-        resp_xml, _ = filters.identify((xml, data))
+        resp_xml, _ = serializers.identify((xml, data))
 
         xml_str = '<root>'
         xml_str += '<Identify>'
@@ -114,7 +114,7 @@ class tobytesTests(unittest.TestCase):
         data = {}
         xml = etree.Element('root')
         
-        resp_xml = filters.tobytes((xml, data))
+        resp_xml = serializers.tobytes((xml, data))
 
         self.assertIsInstance(resp_xml, bytes)
 
@@ -137,7 +137,7 @@ class ListMetadataFormatsTests(unittest.TestCase):
         }
         xml = etree.Element('root')
         
-        resp_xml, resp_data = filters.listmetadataformats((xml, data))
+        resp_xml, resp_data = serializers.listmetadataformats((xml, data))
 
         xml_str = '<root>'
         xml_str += '<ListMetadataFormats>'
@@ -169,7 +169,7 @@ class ListIdentifiersTests(unittest.TestCase):
                 ]
         }
         root = etree.Element('root')
-        xml, data = filters.listidentifiers((root, data))
+        xml, data = serializers.listidentifiers((root, data))
 
         xml_str = '<root>'
         xml_str += '<ListIdentifiers>'
@@ -196,7 +196,7 @@ class ListIdentifiersTests(unittest.TestCase):
                 ]
         }
         root = etree.Element('root')
-        xml, data = filters.listidentifiers((root, data))
+        xml, data = serializers.listidentifiers((root, data))
 
         self.assertEqual(xml.xpath('/root/ListIdentifiers/header/@status')[0], 'deleted')
 
@@ -213,7 +213,7 @@ class ListIdentifiersTests(unittest.TestCase):
                     ]
             }
             root = etree.Element('root')
-            xml, data = filters.listidentifiers((root, data))
+            xml, data = serializers.listidentifiers((root, data))
 
             self.assertEqual(xml.xpath('/root/ListIdentifiers/header/@status'), [])
 
@@ -230,7 +230,7 @@ class ListIdentifiersTests(unittest.TestCase):
                     ]
             }
             root = etree.Element('root')
-            xml, data = filters.listidentifiers((root, data))
+            xml, data = serializers.listidentifiers((root, data))
 
             self.assertEqual(xml.xpath('/root/ListIdentifiers/header/@status'), [])
 
@@ -246,7 +246,7 @@ class TestListSetsPipe(unittest.TestCase):
         }
         root = etree.Element('root')
 
-        pipe = filters.ListSetsPipe()
+        pipe = serializers.ListSetsPipe()
         xml, data = pipe.transform((root, data))
 
         xml_str = '<root>'
@@ -284,7 +284,7 @@ class TestRecordPipe(unittest.TestCase):
             'language': 'pt'
         }
 
-        xml = filters.record(data)
+        xml = serializers.record(data)
 
         xml_str = '<record>'
         xml_str += '<header>'
@@ -340,7 +340,7 @@ class GetRecordTests(unittest.TestCase):
         }
 
         root = etree.Element('root')
-        xml, data = filters.record((root, data))
+        xml, data = serializers.record((root, data))
 
         xml_str = '<root>'
         xml_str += '<GetRecord>'
@@ -400,7 +400,7 @@ class ListRecordsTests(unittest.TestCase):
         }
 
         root = etree.Element('root')
-        xml, data = filters.listrecords((root, data))
+        xml, data = serializers.listrecords((root, data))
 
         xml_str = '<root>'
         xml_str += '<ListRecords>'
@@ -448,7 +448,7 @@ class TestResumptionTokenPipe(unittest.TestCase):
         }
         root = etree.Element('root')
 
-        pipe = filters.ResumptionTokenPipe()
+        pipe = serializers.ResumptionTokenPipe()
         xml, data = pipe.transform((root, data))
 
         xml_str = '<root>'
@@ -466,7 +466,7 @@ class TestResumptionTokenPipe(unittest.TestCase):
         }
         root = etree.Element('root')
 
-        pipe = filters.ResumptionTokenPipe()
+        pipe = serializers.ResumptionTokenPipe()
         xml, data = pipe.transform((root, data))
 
         xml_str = '<root>'

@@ -71,11 +71,57 @@ import plumber
 from lxml import etree
 
 from .formatters import oai_dc
+from . import validators
+
+
+__all__ = ['serialize_identify', 'serialize_list_metadata_formats',
+        'serialize_list_identifiers', 'serialize_list_records',
+        'serialize_get_record']
 
 
 LOGGER = logging.getLogger(__name__)
 
 
+@validators.validate_on_debug
+def serialize_identify(data):
+    ppl = plumber.Pipeline(root, responsedate, request, identify, tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
+@validators.validate_on_debug
+def serialize_list_metadata_formats(data):
+    ppl = plumber.Pipeline(root, responsedate, request, listmetadataformats,
+            tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
+@validators.validate_on_debug
+def serialize_list_identifiers(data):
+    ppl = plumber.Pipeline(root, responsedate, request, listidentifiers,
+            tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
+@validators.validate_on_debug
+def serialize_list_records(data):
+    ppl = plumber.Pipeline(root, responsedate, request, listrecords, tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
+@validators.validate_on_debug
+def serialize_get_record(data):
+    ppl = plumber.Pipeline(root, responsedate, request, getrecord, tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
+#-----------------------------------------------------------------------------
+# Filtros e funções que operam a serialização dos dados
+#-----------------------------------------------------------------------------
 XMLNS = "http://www.openarchives.org/OAI/2.0/"
 XSI = "http://www.w3.org/2001/XMLSchema-instance"
 SCHEMALOCATION = ' '.join(['http://www.openarchives.org/OAI/2.0/',
