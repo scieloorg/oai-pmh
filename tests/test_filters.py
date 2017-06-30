@@ -58,11 +58,21 @@ class RequestTests(unittest.TestCase):
         }
         xml = etree.Element('root')
         
-        resp_xml, resp_data = filters.request((xml, data))
+        resp_xml, _ = filters.request((xml, data))
 
         xml_str = '<root><request verb="Identifier">http://books.scielo.org/oai/</request></root>'
 
         self.assertEqual(etree.tostring(resp_xml), xml_str.encode('utf-8'))
+
+    def test_arbitrary_items_are_represented_as_attrs(self):
+        data = {
+            'repository': {'baseURL': 'http://books.scielo.org/oai/'},
+            'request': {'verb': 'Identifier', 'foo': 'bar'}
+        }
+        xml = etree.Element('root')
+        
+        resp_xml, _ = filters.request((xml, data))
+        self.assertEqual(resp_xml[0].attrib['foo'], 'bar') 
 
 
 class IdentifyTests(unittest.TestCase):
@@ -147,47 +157,8 @@ class ListMetadataFormatsTests(unittest.TestCase):
         self.assertEqual(etree.tostring(resp_xml), xml_str.encode('utf-8'))
 
 
-class TestListIdentifiersPipe(unittest.TestCase):
-
-    @unittest.skip('refatorar para eliminar o uso de threadlocals')
-    def test_list_identifiers_add_one_header_for_each_identifier(self):
-        data = {
-            'verb': 'ListIdentifiers',
-            'baseURL': 'http://books.scielo.org/oai/',
-            'books': [
-                {
-                    'identifier': 'xpto',
-                    'datestamp': datetime(2014, 2, 12, 10, 55, 0),
-                    'publisher': 'Teste OAI-PMH'
-                }, {
-                    'identifier': 'xvzp',
-                    'datestamp': datetime(2014, 1, 27, 10, 55, 0),
-                    'publisher': 'OAI-PMH SciELO'
-                }
-            ]
-        }
-        root = etree.Element('root')
-
-        xml, data = filters.listidentifiers((root, data))
-
-        xml_str = '<root>'
-        xml_str += '<ListIdentifiers>'
-        xml_str += '<header>'
-        xml_str += '<identifier>xpto</identifier>'
-        xml_str += '<datestamp>2014-02-12</datestamp>'
-        xml_str += '<setSpec>teste-oai-pmh</setSpec>'
-        xml_str += '</header>'
-        xml_str += '<header>'
-        xml_str += '<identifier>xvzp</identifier>'
-        xml_str += '<datestamp>2014-01-27</datestamp>'
-        xml_str += '<setSpec>oai-pmh-scielo</setSpec>'
-        xml_str += '</header>'
-        xml_str += '</ListIdentifiers>'
-        xml_str += '</root>'
-
-        self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
-
-    def test_header_with_three_subelements(self):
+class ListIdentifiersTests(unittest.TestCase):
+    def test_one_not_deleted_record(self):
         data = {
                 'resources': [
                     {
@@ -262,22 +233,6 @@ class TestListIdentifiersPipe(unittest.TestCase):
             xml, data = filters.listidentifiers((root, data))
 
             self.assertEqual(xml.xpath('/root/ListIdentifiers/header/@status'), [])
-
-
-class TestSetPipe(unittest.TestCase):
-
-    def test_set_pipe_add_set_with_two_subelements(self):
-        data = 'Editora UNESP'
-
-        pipe = filters.SetPipe()
-        xml = pipe.transform(data)
-
-        xml_str = '<set>'
-        xml_str += '<setSpec>editora-unesp</setSpec>'
-        xml_str += '<setName>Editora UNESP</setName>'
-        xml_str += '</set>'
-
-        self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
 
 
 class TestListSetsPipe(unittest.TestCase):

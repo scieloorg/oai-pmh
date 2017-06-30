@@ -64,10 +64,8 @@ dela no caso dos sub-pipelines.
         }
 
 """
-import re
 import logging
 from datetime import datetime
-from unicodedata import normalize
 
 import plumber
 from lxml import etree
@@ -83,24 +81,6 @@ XSI = "http://www.w3.org/2001/XMLSchema-instance"
 SCHEMALOCATION = ' '.join(['http://www.openarchives.org/OAI/2.0/',
     'http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd'])
 ATTRIB = {"{%s}schemaLocation" % XSI: SCHEMALOCATION}
-
-
-_punct_re = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
-
-
-def _slugify(text, delim='-'):
-    """Generates an slightly worse ASCII-only slug.
-    Originally from:
-    http://flask.pocoo.org/snippets/5/
-    Generating Slugs
-    By Armin Ronacher filed in URLs
-    """
-    result = []
-    for word in _punct_re.split(text.lower()):
-        word = normalize('NFKD', word).encode('ascii', 'ignore')
-        if word:
-            result.append(word.decode('ascii'))
-    return delim.join(result)
 
 
 def deleted_precond(item):
@@ -322,7 +302,7 @@ class SetPipe(plumber.Filter):
         sets = etree.Element('set')
 
         set_spec = etree.SubElement(sets, 'setSpec')
-        set_spec.text = _slugify(data)
+        set_spec.text = data
 
         set_name = etree.SubElement(sets, 'setName')
         set_name.text = data
