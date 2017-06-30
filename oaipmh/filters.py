@@ -344,17 +344,17 @@ def make_record(record_data):
     return xmltree
 
 
-class GetRecordPipe(plumber.Filter):
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'GetRecord')
+@plumber.filter
+def getrecord(item):
+    xml, data = item
+    sub = etree.SubElement(xml, 'GetRecord')
 
-        records = (make_record(resource)
-                   for resource in data.get('resources', []))
-        for rec in records:
-            sub.append(rec)
+    records = (make_record(resource)
+               for resource in data.get('resources', []))
+    for rec in records:
+        sub.append(rec)
 
-        return item
+    return item
 
 
 @plumber.filter

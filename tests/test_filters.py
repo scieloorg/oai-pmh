@@ -361,14 +361,14 @@ class TestRecordPipe(unittest.TestCase):
         self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
 
 
-class TestGetRecordPipe(unittest.TestCase):
+class GetRecordTests(unittest.TestCase):
 
-    @unittest.skip('melhorar a estratégia de comparação')
+    @unittest.skip('refatorar para eliminar o uso de threadlocals')
     def test_get_record_pipe_add_get_record(self):
         data = {
             'verb': 'GetRecord',
             'baseURL': 'http://books.scielo.org/oai/',
-            'books': [{
+            'resources': [{
                 'datestamp': datetime(2014, 2, 19, 13, 5, 0),
                 'title': 'title',
                 'creators': {

@@ -31,6 +31,11 @@ def get_listrecords_pipeline():
             filters.listrecords, filters.tobytes)
 
 
+def get_getrecord_pipeline():
+    return plumber.Pipeline(filters.root, filters.responsedate, filters.request,
+            filters.getrecord, filters.tobytes)
+
+
 def get_validator():
     xmlschema_doc = etree.parse(catalogs.SCHEMAS['OAI-PMH.xsd'])
     return etree.XMLSchema(xmlschema_doc)
@@ -117,6 +122,19 @@ def make_list_records(request, repository, resources):
             }
 
     ppl = get_listrecords_pipeline()
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
+@validate_on_debug
+def make_get_record(request, repository, resource):
+    data = {
+            'request': dict(request),
+            'repository': dict(repository),
+            'resources': [dict(resource)],
+            }
+
+    ppl = get_getrecord_pipeline()
     output = next(ppl.run(data, rewrap=True))
     return output
 
