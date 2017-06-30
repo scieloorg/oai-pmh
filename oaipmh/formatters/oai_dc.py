@@ -4,12 +4,12 @@ from lxml import etree
 __all__ = ['make_metadata']
 
 
-XMLNS = "http://www.openarchives.org/OAI/2.0/oai_dc/"
-DC_NS = "http://purl.org/dc/elements/1.1/"
+OAIDC = "http://www.openarchives.org/OAI/2.0/oai_dc/"
+DC = "http://purl.org/dc/elements/1.1/"
 XSI = "http://www.w3.org/2001/XMLSchema-instance"
-SCHEMAlOCATION = "http://www.openarchives.org/OAI/2.0/oai_dc/"
-SCHEMAlOCATION += " http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
-ATTRIB = {"{%s}schemaLocation" % XSI: SCHEMAlOCATION}
+SCHEMALOCATION = "http://www.openarchives.org/OAI/2.0/oai_dc/"
+SCHEMALOCATION += " http://www.openarchives.org/OAI/2.0/oai_dc.xsd"
+ATTRIB = {"{%s}schemaLocation" % XSI: SCHEMALOCATION}
 
 
 MAKERS_REGISTRY = []
@@ -22,8 +22,8 @@ def register_maker(f):
 
 def make_metadata(resource):
     metadata = etree.Element('metadata')
-    oai_rec = etree.SubElement(metadata, '{%s}dc' % XMLNS,
-        nsmap={'oai_dc': XMLNS, 'dc': DC_NS, 'xsi': XSI},
+    oai_rec = etree.SubElement(metadata, '{%s}dc' % OAIDC,
+        nsmap={'oai_dc': OAIDC, 'dc': DC, 'xsi': XSI},
         attrib=ATTRIB
     )
 
@@ -37,7 +37,7 @@ def make_metadata(resource):
 def make_element_from_str(resource, name):
     elements = []
     for value in resource.get(name, []):
-        elem = etree.Element('{%s}%s' % (DC_NS, name))
+        elem = etree.Element('{%s}%s' % (DC, name))
         elem.text = value
         elements.append(elem)
 
@@ -47,7 +47,7 @@ def make_element_from_str(resource, name):
 def make_element_from_pair(resource, name):
     elements = []
     for _, value in resource.get(name, []):
-        elem = etree.Element('{%s}%s' % (DC_NS, name))
+        elem = etree.Element('{%s}%s' % (DC, name))
         elem.text = value
         elements.append(elem)
 

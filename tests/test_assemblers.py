@@ -8,8 +8,9 @@ from oaipmh import assemblers
 class SchemaValidatorMixin:
     def assertXMLIsValid(self, xml_bytes):
         validator = assemblers.OAIValidator(xml_bytes)
-        if not validator.validate():
-            raise self.failureException('the XML is invalid')
+        is_valid, errors = validator.validate()
+        if not is_valid:
+            raise self.failureException('the XML is invalid: %s' % errors)
 
 
 class MakeIdentifyTests(SchemaValidatorMixin, unittest.TestCase):
@@ -156,7 +157,7 @@ class MakeListRecordsTests(SchemaValidatorMixin, unittest.TestCase):
     @patch('oaipmh.filters.datetime')
     def test_correct_usage(self, mock_utc):
         mock_utc.utcnow.return_value = datetime(2017, 6, 22, 19, 1, 43)
-        expected = b''
+        expected = b'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<OAI-PMH xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.openarchives.org/OAI/2.0/" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"><responseDate>2017-06-22T19:01:43Z</responseDate><request verb="ListRecords">https://oai.scielo.br/</request><ListRecords><record><header><identifier>oai:arXiv:cs/0112017</identifier><datestamp>2017-06-14</datestamp><setSpec>set1</setSpec><setSpec>set2</setSpec></header><metadata><oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd"><dc:title>MICROBIAL COUNTS OF DARK RED...</dc:title><dc:creator>Vieira, Francisco Cleber Sousa</dc:creator><dc:contributor>Evans, R. J.</dc:contributor><dc:description>The number of colony forming units (CFU)...</dc:description><dc:publisher>Sociedade Brasileira de Microbiologia</dc:publisher><dc:date>1998-09-01</dc:date><dc:type>research-article</dc:type><dc:format>text/html</dc:format><dc:identifier>https://ref.scielo.org/7vy47j</dc:identifier><dc:language>en</dc:language></oai_dc:dc></metadata></record></ListRecords></OAI-PMH>'
         self.assertEqual(expected,
                 assemblers.make_list_records(self.request,
                     self.repository, self.resources)) 

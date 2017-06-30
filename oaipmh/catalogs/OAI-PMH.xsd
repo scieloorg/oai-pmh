@@ -194,7 +194,10 @@
        explicitly qualified in the response.</documentation>
     </annotation>
     <sequence>
+      <!-- modificado para testar apenas o envelope 
       <any namespace="##other" processContents="strict"/>
+      -->
+      <any namespace="##other" processContents="lax"/>
     </sequence>
   </complexType>
 

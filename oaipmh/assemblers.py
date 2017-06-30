@@ -47,7 +47,7 @@ class OAIValidator:
 
     def validate(self):
         validator = get_validator()
-        return validator(self.xml_doc())
+        return (validator(self.xml_doc()), validator.error_log)
 
     def __str__(self):
         """A representação textual do validador é útil quando em conjunto
