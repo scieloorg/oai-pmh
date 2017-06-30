@@ -1,5 +1,9 @@
 """Serializadores baseados em pipelines de transformação.
 
+
+Todos os filtros operam sob a estrutura de dados descrita abaixo, ou em partes
+dela no caso dos sub-pipelines.
+
     .. code-block:: python
 
         {
@@ -143,7 +147,7 @@ def responsedate(item):
     xml, data = item
     sub = etree.SubElement(xml, 'responseDate')
     sub.text = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-    return (xml, data)
+    return item
 
 
 @plumber.filter
@@ -179,7 +183,7 @@ def request(item):
     for key, value in data['request'].items():
         sub.attrib[key] = value
     sub.text = data['repository'].get('baseURL')
-    return (xml, data)
+    return item
 
 
 @plumber.filter
@@ -219,7 +223,7 @@ def identify(item):
         else:
             sub.text = data['repository'].get(element)
 
-    return (xml, data)
+    return item
 
 
 @plumber.filter
@@ -231,7 +235,7 @@ def listmetadataformats(item):
 
     .. code-block:: python
 
-        data = {
+        {
             'formats': [
                 {
                     'metadataPrefix': 'oai_dc',
@@ -256,16 +260,29 @@ def listmetadataformats(item):
             new_elem = etree.SubElement(metadata_format, element)
             new_elem.text = _format[element]
 
-    return (xml, data)
+    return item
 
 
-#subpipeline
 @plumber.filter
 def header(item):
     """Adiciona o elemento ``header`` contendo metadados do recurso no repo.
 
     Esse filtro é parte integrante de um *sub pipeline* que opera em uma
     sequência de *resources*. 
+
+    Essa função espera receber um dicionário de dados conforme o exemplo:
+
+    .. code-block:: python
+
+        {
+            'ridentifier': <str>,
+            'datestamp': <str>,
+            'setspec': <List[str]>,
+            'deleted': <bool>,
+        }
+
+    Saiba mais em:
+      - https://www.openarchives.org/OAI/2.0/openarchivesprotocol.htm#Record
     """
     xml, data = item
 
@@ -327,7 +344,7 @@ class ListSetsPipe(plumber.Filter):
         for _set in results:
             sub.append(_set)
 
-        return (xml, data)
+        return item
 
 
 def make_record(record_data):
