@@ -217,3 +217,36 @@ class MakeGetRecordTests(SchemaValidatorMixin, unittest.TestCase):
         self.assertXMLIsValid(
                 serializers.serialize_get_record(self.data))
 
+
+class MakeListSetsTests(SchemaValidatorMixin, unittest.TestCase):
+    def setUp(self):
+        self.data = {
+            'repository': {
+                'repositoryName': 'SciELO Brazil',
+                'baseURL': 'https://oai.scielo.br/',
+                'protocolVersion': '2.0',
+                'adminEmail': 'scielo-dev@googlegroups.com',
+                'earliestDatestamp': datetime(1909, 4, 1),
+                'deletedRecord': 'no',
+                'granularity': 'YYYY-MM-DD',
+            },
+            'request': {'verb': 'ListSets'},
+            'sets': [
+                {
+                    'setSpec': 'foo',
+                    'setName': 'bar',
+                },
+            ],
+        }
+
+    @patch('oaipmh.serializers.datetime')
+    def test_correct_usage(self, mock_utc):
+        mock_utc.utcnow.return_value = datetime(2017, 6, 22, 19, 1, 43)
+        expected = b'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<OAI-PMH xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.openarchives.org/OAI/2.0/" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"><responseDate>2017-06-22T19:01:43Z</responseDate><request verb="ListSets">https://oai.scielo.br/</request><ListSets><set><setSpec>foo</setSpec><setName>bar</setName></set></ListSets></OAI-PMH>'
+        self.assertEqual(expected,
+                serializers.serialize_list_sets(self.data))
+
+    def test_xml_validity(self):
+        self.assertXMLIsValid(
+                serializers.serialize_list_sets(self.data))
+

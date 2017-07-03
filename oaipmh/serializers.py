@@ -119,6 +119,13 @@ def serialize_get_record(data):
     return output
 
 
+@validators.validate_on_debug
+def serialize_list_sets(data):
+    ppl = plumber.Pipeline(root, responsedate, request, listsets, tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
 #-----------------------------------------------------------------------------
 # Filtros e funções que operam a serialização dos dados
 #-----------------------------------------------------------------------------
@@ -127,12 +134,6 @@ XSI = "http://www.w3.org/2001/XMLSchema-instance"
 SCHEMALOCATION = ' '.join(['http://www.openarchives.org/OAI/2.0/',
     'http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd'])
 ATTRIB = {"{%s}schemaLocation" % XSI: SCHEMALOCATION}
-
-
-def deleted_precond(item):
-    _, data = item
-    if data.get('deleted'):
-        raise plumber.UnmetPrecondition()
 
 
 @plumber.filter
@@ -343,39 +344,31 @@ def listidentifiers(item):
     return item
 
 
-class SetPipe(plumber.Filter):
-    def transform(self, data):
-        sets = etree.Element('set')
+def make_set(set_data):
+    _set = etree.Element('set')
 
-        set_spec = etree.SubElement(sets, 'setSpec')
-        set_spec.text = data
+    set_spec = etree.SubElement(_set, 'setSpec')
+    set_spec.text = set_data.get('setSpec')
 
-        set_name = etree.SubElement(sets, 'setName')
-        set_name.text = data
+    set_name = etree.SubElement(_set, 'setName')
+    set_name.text = set_data.get('setName')
 
-        return sets
+    return _set
 
 
-class ListSetsPipe(plumber.Filter):
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'ListSets')
+@plumber.filter
+def listsets(item):
+    xml, data = item
+    sub = etree.SubElement(xml, 'ListSets')
 
-        ppl = plumber.Pipeline(
-            SetPipe()
-        )
-        sets = data.get('books')
-        results = ppl.run(sets)
+    sets = (make_set(s) for s in data.get('sets', []))
+    for _set in sets:
+        sub.append(_set)
 
-        for _set in results:
-            sub.append(_set)
-
-        return item
+    return item
 
 
 def make_record(record_data):
-    """Produz uma nova estrutura XML representando ``record_data``.
-    """
     record = etree.Element('record')
 
     ppl = plumber.Pipeline(

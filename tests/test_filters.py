@@ -235,29 +235,25 @@ class ListIdentifiersTests(unittest.TestCase):
             self.assertEqual(xml.xpath('/root/ListIdentifiers/header/@status'), [])
 
 
-class TestListSetsPipe(unittest.TestCase):
+class ListSetsTests(unittest.TestCase):
 
-    @unittest.skip('refatorar para eliminar o uso de threadlocals')
     def test_list_sets_add_one_set_for_each_publisher(self):
         data = {
-            'verb': 'ListIdentifiers',
-            'baseURL': 'http://books.scielo.org/oai/',
-            'books': ['Teste OAI-PMH', 'OAI-PMH SciELO']
+                'request': {'verb': 'ListIdentifiers'},
+                'repository': {'baseURL': 'http://books.scielo.org/oai/'},
+                'sets': [
+                    {'setSpec': 'foo', 'setName': 'bar'},
+                ]
         }
         root = etree.Element('root')
 
-        pipe = serializers.ListSetsPipe()
-        xml, data = pipe.transform((root, data))
+        xml, data = serializers.listsets((root, data))
 
         xml_str = '<root>'
         xml_str += '<ListSets>'
         xml_str += '<set>'
-        xml_str += '<setSpec>teste-oai-pmh</setSpec>'
-        xml_str += '<setName>Teste OAI-PMH</setName>'
-        xml_str += '</set>'
-        xml_str += '<set>'
-        xml_str += '<setSpec>oai-pmh-scielo</setSpec>'
-        xml_str += '<setName>OAI-PMH SciELO</setName>'
+        xml_str += '<setSpec>foo</setSpec>'
+        xml_str += '<setName>bar</setName>'
         xml_str += '</set>'
         xml_str += '</ListSets>'
         xml_str += '</root>'
