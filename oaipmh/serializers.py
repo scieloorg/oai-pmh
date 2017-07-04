@@ -303,7 +303,7 @@ def header(item):
 
         {
             'ridentifier': <str>,
-            'datestamp': <str>,
+            'datestamp': <datetime>,
             'setspec': <List[str]>,
             'deleted': <bool>,
         }

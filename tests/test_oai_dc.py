@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 
 from oaipmh.formatters import oai_dc
 
@@ -130,7 +131,7 @@ class MakePublisherTests(unittest.TestCase):
 
 class MakeDateTests(unittest.TestCase):
     def setUp(self):
-        self.resource = {'date': ['2017-06-29', '2016-06-01']}
+        self.resource = {'date': [datetime(2017, 6, 29), datetime(2016, 6, 1)]}
 
     def test_dates_are_multivalued(self):
         date_elements = oai_dc.make_date(self.resource)
@@ -255,7 +256,6 @@ class MakeLanguageTests(unittest.TestCase):
 
 class MakeMetadataTests(unittest.TestCase):
     def setUp(self):
-        from datetime import datetime
         self.resource = {
                 'ridentifier': 'oai:arXiv:cs/0112017',
                 'datestamp': datetime(2017, 6, 14),
@@ -266,7 +266,7 @@ class MakeMetadataTests(unittest.TestCase):
                 'description': [('en', 'The number of colony forming units (CFU)...')],
                 'publisher': ['Sociedade Brasileira de Microbiologia'],
                 'contributor': ['Evans, R. J.'],
-                'date': ['1998-09-01'],
+                'date': [datetime(1998, 9, 1)],
                 'type': ['research-article'],
                 'format': ['text/html'],
                 'identifier': ['https://ref.scielo.org/7vy47j'],

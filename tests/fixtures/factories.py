@@ -5,7 +5,7 @@ from oaipmh.datastores import Resource
 
 SAMPLE_RESOURCE_DATA = {
         'ridentifier': 'oai:arXiv:cs/0112017',
-        'datestamp': '2017-06-14',
+        'datestamp': datetime.strptime('2017-06-14', '%Y-%m-%d'),
         'setspec': ['set1', 'set2'],
         'title': [('en', 'MICROBIAL COUNTS OF DARK RED...')],
         'creator': ['Vieira, Francisco Cleber Sousa'],
@@ -13,7 +13,7 @@ SAMPLE_RESOURCE_DATA = {
         'description': [('en', 'The number of colony forming units (CFU)...')],
         'publisher': ['Sociedade Brasileira de Microbiologia'],
         'contributor': ['Evans, R. J.'],
-        'date': ['1998-09-01'],
+        'date': [datetime.strptime('1998-09-01', '%Y-%m-%d')],
         'type': ['research-article'],
         'format': ['text/html'],
         'identifier': ['https://ref.scielo.org/7vy47j'],

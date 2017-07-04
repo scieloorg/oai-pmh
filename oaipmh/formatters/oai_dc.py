@@ -34,11 +34,11 @@ def make_metadata(resource):
     return metadata
 
 
-def make_element_from_str(resource, name):
+def make_element_from_str(resource, name, tostr=str):
     elements = []
     for value in resource.get(name, []):
         elem = etree.Element('{%s}%s' % (DC, name))
-        elem.text = value
+        elem.text = tostr(value)
         elements.append(elem)
 
     return elements
@@ -81,7 +81,9 @@ def make_publisher(resource):
 
 @register_maker
 def make_date(resource):
-    return make_element_from_str(resource, 'date')
+    def format_date(date):
+        return date.strftime('%Y-%m-%d')
+    return make_element_from_str(resource, 'date', tostr=format_date)
 
 
 @register_maker
