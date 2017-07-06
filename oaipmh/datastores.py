@@ -5,6 +5,9 @@ import itertools
 import datetime
 
 
+from articlemeta import client as articlemeta_client
+
+
 """
 Representa um objeto de informação.
 
@@ -107,13 +110,75 @@ class InMemory(DataStore):
         yield from ds
         
 
-class ArticleMetaClientAdapter:
+class SliceableResultSetThriftClient(articlemeta_client.ThriftClient):
+    """Altera o comportamento do método ``documents`` para que seja possível
+    controlar os argumentos ``limit`` e ``offset`` na consulta ao backend.
+    """
+    def __documents_ids(self, collection=None, issn=None, from_date=None,
+            until_date=None, extra_filter=None, limit=None, offset=None):
+        limit = limit or articlemeta_client.LIMIT
+        offset = offset or 0
+
+        try:
+            with self.client_context() as client:
+                identifiers = client.get_article_identifiers(
+                    collection=collection, issn=issn,
+                    from_date=from_date, until_date=until_date,
+                    limit=limit, offset=offset,
+                    extra_filter=extra_filter)
+        except self.ARTICLEMETA_THRIFT.ServerError:
+            msg = 'Error retrieving list of article identifiers: %s_%s' % (collection, issn)
+            raise articlemeta_client.ServerError(msg)
+
+        if len(identifiers) == 0:
+            return
+
+        for identifier in identifiers:
+            yield identifier
+
+
+    def documents(self, collection=None, issn=None, from_date=None,
+                  until_date=None, fmt='xylose', body=False, extra_filter=None,
+                  only_identifiers=False, limit=None, offset=None):
+        identifiers = self.__documents_ids(collection=collection, issn=issn,
+                from_date=from_date, until_date=until_date,
+                extra_filter=extra_filter, limit=limit, offset=offset)
+        for identifier in identifiers:
+            if only_identifiers:
+                yield identifier
+            else:
+                document = self.document(
+                    identifier.code,
+                    identifier.collection,
+                    replace_journal_metadata=False,
+                    fmt=fmt,
+                    body=body
+                )
+                yield document
+
+
+class ArticleMetaClientFacade:
     def __init__(self, client, collection):
         self.client = client
         self.collection = collection
 
     def document(self, code):
         return self.client.document(code, self.collection)
+
+    def query_documents(self, issn=None, from_date=None, until_date=None,
+            offset=0, limit=1000):
+        return self.client.documents(collection=self.collection, issn=issn,
+                from_date=from_date, until_date=until_date, offset=offset,
+                limit=limit)
+
+
+def get_articlemeta_client(collection, **kwargs):
+    """Retorna um cliente do serviço ArticleMeta otimizado e adaptado para
+    uso como DataStore.
+    """
+    thriftclient = SliceableResultSetThriftClient(**kwargs)
+    adaptedclient = ArticleMetaClientFacade(thriftclient, collection)
+    return adaptedclient
 
 
 def parse_date(datestamp):
@@ -235,8 +300,8 @@ class ArticleResourceFacade:
 
 
 class ArticleMeta(DataStore):
-    def __init__(self, client_adapter):
-        self.client = client_adapter
+    def __init__(self, client: ArticleMetaClientFacade):
+        self.client = client
 
     def add(self, resource):
         return NotImplemented

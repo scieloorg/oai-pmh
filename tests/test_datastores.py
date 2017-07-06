@@ -146,14 +146,19 @@ class DatestampToTupleTests(unittest.TestCase):
                 lambda: datastores.datestamp_to_tuple('2017-06-X'))
 
 
+def get_article_fixture():
+    import json
+    from xylose.scielodocument import Article
+
+    raw_article_path = os.path.join(FIXTURES_DIR, 'article_type3.json')
+    raw_article = json.load(open(raw_article_path))
+    article = Article(raw_article)
+    return article
+
+
 class ResourceFacadeTests(unittest.TestCase):
     def setUp(self):
-        import json
-        from xylose.scielodocument import Article
-
-        raw_article_path = os.path.join(FIXTURES_DIR, 'article_type3.json')
-        raw_article = json.load(open(raw_article_path))
-        self.article = Article(raw_article)
+        self.article = get_article_fixture()
         self.resource_fac = datastores.ArticleResourceFacade(self.article)
 
     def test_ridentifier(self):
@@ -231,4 +236,14 @@ class ResourceFacadeTests(unittest.TestCase):
     def test_resource_instantiation(self):
         resource = self.resource_fac.to_resource()
         self.assertIsInstance(resource, datastores.Resource)
+
+
+class ArticleMetaTests(unittest.TestCase):
+    def test_get_known_resource_returns_namedtuple_resource(self):
+        class ClientStub:
+            def document(self, ridentifier):
+                return get_article_fixture()
+
+        am = datastores.ArticleMeta(ClientStub())
+        self.assertIsInstance(am.get('validID'), datastores.Resource)
 
