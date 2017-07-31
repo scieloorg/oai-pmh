@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from oaipmh.datastores import Resource
+from oaipmh.repository import RepositoryMeta, OAIRequest
 
 
 SAMPLE_RESOURCE_DATA = {
@@ -28,4 +29,38 @@ def get_sample_resource(**kwargs):
     data = dict(SAMPLE_RESOURCE_DATA)
     data.update(**kwargs)
     return Resource(**data)
+
+
+SAMPLE_REPOSITORYMETA_DATA = {
+        'repositoryName': 'SciELO Brazil',
+        'baseURL': 'https://oai.scielo.br/',
+        'protocolVersion': '2.0',
+        'adminEmail': 'scielo-dev@googlegroups.com',
+        'earliestDatestamp': datetime(1909, 4, 1),
+        'deletedRecord': 'no',
+        'granularity': 'YYYY-MM-DD',
+        }
+
+
+def get_sample_repositorymeta(**kwargs):
+    data = dict(SAMPLE_REPOSITORYMETA_DATA)
+    data.update(**kwargs)
+    return RepositoryMeta(**data)
+
+
+SAMPLE_REQUEST_DATA = {
+        'verb': 'Identify',
+        'identifier': '',
+        'metadataPrefix': '',
+        'set': '',
+        'resumptionToken': '',
+        'from_': '',
+        'until': '',
+        }
+
+
+def get_sample_request(**kwargs):
+    data = dict(SAMPLE_REQUEST_DATA)
+    data.update(**kwargs)
+    return OAIRequest(**data)
 
