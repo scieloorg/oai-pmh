@@ -50,3 +50,14 @@ def serialize_list_records(repo: RepositoryMeta, oai_request: OAIRequest,
 
     return serializers.serialize_list_records(data)
 
+
+def serialize_list_identifiers(repo: RepositoryMeta, oai_request: OAIRequest,
+        resources: Iterable[datastores.Resource]) -> bytes:
+    data = {
+            'repository': asdict(repo),
+            'request': asdict(oai_request),
+            'resources': [asdict(resource) for resource in resources],
+            }
+
+    return serializers.serialize_list_identifiers(data)
+
