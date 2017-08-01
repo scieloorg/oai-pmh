@@ -208,7 +208,8 @@ def request(item):
     xml, data = item
     sub = etree.SubElement(xml, 'request')
     for key, value in data['request'].items():
-        sub.attrib[key] = value
+        if value is not None:
+            sub.attrib[key] = value
     sub.text = data['repository'].get('baseURL')
     return item
 

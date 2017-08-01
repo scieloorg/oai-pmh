@@ -13,6 +13,10 @@ OAIRequest = namedtuple('OAIRequest', '''verb identifier metadataPrefix set
         resumptionToken from_ until''')
 
 
+MetadataFormat = namedtuple('MetadataFormat', '''metadataPrefix schema
+        metadataNamespace''')
+
+
 def asdict(namedtupl):
     """Produz uma instância de ``dict`` à partir da namedtuple ``namedtupl``.
     Underscores no início ou fim do nome do atributo serão removidos.
@@ -60,4 +64,42 @@ def serialize_list_identifiers(repo: RepositoryMeta, oai_request: OAIRequest,
             }
 
     return serializers.serialize_list_identifiers(data)
+
+
+def serialize_list_metadata_formats(repo: RepositoryMeta, oai_request: OAIRequest,
+        formats: Iterable[MetadataFormat]) -> bytes:
+    data = {
+            'repository': asdict(repo),
+            'request': asdict(oai_request),
+            'formats': [asdict(fmt) for fmt in formats],
+            }
+
+    return serializers.serialize_list_metadata_formats(data)
+
+
+class Repository:
+    def __init__(self, metadata: RepositoryMeta, ds: datastores.DataStore):
+        self.metadata = metadata
+        self.ds = ds
+
+    def identify(self):
+        request = OAIRequest(verb='Identify', identifier=None,
+                metadataPrefix=None, set=None, resumptionToken=None, from_=None,
+                until=None)
+        return serialize_identify(self.metadata, request)
+
+    def get_record(self, identifier, metadata_prefix='oai_dc'):
+        request = OAIRequest(verb='GetRecord', identifier=identifier,
+                metadataPrefix=metadata_prefix, set=None, resumptionToken=None,
+                from_=None, until=None)
+        resource = self.ds.get(identifier)
+        return serialize_get_record(self.metadata, request, resource)
+
+    def list_records(self, metadata_prefix='oai_dc', _from=None, until=None,
+            set=None, resumption_token=None):
+        request = OAIRequest(verb='ListRecords', identifier=None,
+                metadataPrefix=metadata_prefix, set=set,
+                resumptionToken=resumption_token, from_=_from, until=until)
+        resources = self.ds.list(_from=_from, until=until)
+        return serialize_list_records(self.metadata, request, resources)
 
