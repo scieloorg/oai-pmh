@@ -1,3 +1,4 @@
+from typing import Iterable
 from collections import namedtuple
 
 from oaipmh import serializers, datastores
@@ -19,7 +20,7 @@ def asdict(namedtupl):
     return {k.strip('_'):v for k, v in namedtupl._asdict().items()}
 
 
-def identify(repo: RepositoryMeta, oai_request: OAIRequest) -> bytes:
+def serialize_identify(repo: RepositoryMeta, oai_request: OAIRequest) -> bytes:
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
@@ -28,7 +29,7 @@ def identify(repo: RepositoryMeta, oai_request: OAIRequest) -> bytes:
     return serializers.serialize_identify(data)
 
 
-def get_record(repo: RepositoryMeta, oai_request: OAIRequest,
+def serialize_get_record(repo: RepositoryMeta, oai_request: OAIRequest,
         resource: datastores.Resource) -> bytes:
     data = {
             'repository': asdict(repo),
@@ -37,4 +38,15 @@ def get_record(repo: RepositoryMeta, oai_request: OAIRequest,
             }
 
     return serializers.serialize_get_record(data)
+
+
+def serialize_list_records(repo: RepositoryMeta, oai_request: OAIRequest,
+        resources: Iterable[datastores.Resource]) -> bytes:
+    data = {
+            'repository': asdict(repo),
+            'request': asdict(oai_request),
+            'resources': [asdict(resource) for resource in resources],
+            }
+
+    return serializers.serialize_list_records(data)
 

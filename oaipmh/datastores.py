@@ -157,7 +157,10 @@ class SliceableResultSetThriftClient(articlemeta_client.ThriftClient):
                 yield document
 
 
-class ArticleMetaClientFacade:
+class BoundArticleMetaClient:
+    """Cliente da API ArticleMeta cujas consultas são vinculadas ao conteúdo
+    de determinada coleção.
+    """
     def __init__(self, client, collection):
         self.client = client
         self.collection = collection
@@ -165,7 +168,7 @@ class ArticleMetaClientFacade:
     def document(self, code):
         return self.client.document(code, self.collection)
 
-    def query_documents(self, issn=None, from_date=None, until_date=None,
+    def documents(self, issn=None, from_date=None, until_date=None,
             offset=0, limit=1000):
         return self.client.documents(collection=self.collection, issn=issn,
                 from_date=from_date, until_date=until_date, offset=offset,
@@ -177,7 +180,7 @@ def get_articlemeta_client(collection, **kwargs):
     uso como DataStore.
     """
     thriftclient = SliceableResultSetThriftClient(**kwargs)
-    adaptedclient = ArticleMetaClientFacade(thriftclient, collection)
+    adaptedclient = BoundArticleMetaClient(thriftclient, collection)
     return adaptedclient
 
 
@@ -300,7 +303,7 @@ class ArticleResourceFacade:
 
 
 class ArticleMeta(DataStore):
-    def __init__(self, client: ArticleMetaClientFacade):
+    def __init__(self, client: BoundArticleMetaClient):
         self.client = client
 
     def add(self, resource):
@@ -311,5 +314,8 @@ class ArticleMeta(DataStore):
         return ArticleResourceFacade(doc).to_resource()
 
     def list(self, sets=None, offset=0, count=1000, _from=None, until=None):
-        return NotImplemented
+        docs = self.client.documents(offset=offset, limit=count,
+                from_date=_from, until_date=until)
+        return (ArticleResourceFacade(doc).to_resource()
+                for doc in docs)
 
