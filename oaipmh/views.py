@@ -3,7 +3,11 @@ from pyramid.response import Response
 from pyramid import httpexceptions
 
 
-@view_config(route_name='root', renderer='string')
+def xml_response(body):
+    return Response(body=body, charset='utf-8', content_type='application/xml')
+
+
+@view_config(route_name='root')
 def root(request):
-    return request.repository.identify().decode('utf-8')
+    return xml_response(request.repository.identify())
 
