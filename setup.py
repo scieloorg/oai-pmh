@@ -45,6 +45,9 @@ setup(
     test_suite='tests',
     install_requires=INSTALL_REQUIRES,
     entry_points={
+        'paste.app_factory': [
+            'main = oaipmh:main',
+        ],
     },
 )
 
