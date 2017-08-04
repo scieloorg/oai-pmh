@@ -82,24 +82,24 @@ class Repository:
         self.metadata = metadata
         self.ds = ds
 
-    def identify(self):
-        request = OAIRequest(verb='Identify', identifier=None,
-                metadataPrefix=None, set=None, resumptionToken=None, from_=None,
-                until=None)
-        return serialize_identify(self.metadata, request)
+    def handle_request(self, oairequest):
+        verbs = {'Identify': self.identify, 'GetRecord': self.get_record,
+                'ListRecords': self.list_records}
+        try:
+            verb = verbs[oairequest.verb]
+        except KeyError:
+            return '<p>Verb not supported</p>'.encode('utf-8')
 
-    def get_record(self, identifier, metadata_prefix='oai_dc'):
-        request = OAIRequest(verb='GetRecord', identifier=identifier,
-                metadataPrefix=metadata_prefix, set=None, resumptionToken=None,
-                from_=None, until=None)
-        resource = self.ds.get(identifier)
-        return serialize_get_record(self.metadata, request, resource)
+        return verb(oairequest)
 
-    def list_records(self, metadata_prefix='oai_dc', _from=None, until=None,
-            set=None, resumption_token=None):
-        request = OAIRequest(verb='ListRecords', identifier=None,
-                metadataPrefix=metadata_prefix, set=set,
-                resumptionToken=resumption_token, from_=_from, until=until)
-        resources = self.ds.list(_from=_from, until=until)
-        return serialize_list_records(self.metadata, request, resources)
+    def identify(self, oairequest):
+        return serialize_identify(self.metadata, oairequest)
+
+    def get_record(self, oairequest):
+        resource = self.ds.get(oairequest.identifier)
+        return serialize_get_record(self.metadata, oairequest, resource)
+
+    def list_records(self, oairequest):
+        resources = self.ds.list(_from=oairequest._from, until=oairequest.until)
+        return serialize_list_records(self.metadata, oairequest, resources)
 
