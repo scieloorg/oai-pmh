@@ -126,6 +126,12 @@ def serialize_list_sets(data):
     return output
 
 
+def serialize_bad_verb(data):
+    ppl = plumber.Pipeline(root, responsedate, request, badverb, tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
 #-----------------------------------------------------------------------------
 # Filtros e funções que operam a serialização dos dados
 #-----------------------------------------------------------------------------
@@ -407,13 +413,13 @@ def listrecords(item):
     return item
 
 
-class BadVerbPipe(plumber.Filter):
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'error')
-        sub.attrib['code'] = 'badVerb'
-        sub.text = 'Illegal OAI verb'
-        return (xml, data)
+@plumber.filter
+def badverb(item):
+    xml, data = item
+    sub = etree.SubElement(xml, 'error')
+    sub.attrib['code'] = 'badVerb'
+    sub.text = 'Illegal OAI verb'
+    return item
 
 
 class IdNotExistPipe(plumber.Filter):

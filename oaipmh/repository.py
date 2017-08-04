@@ -77,6 +77,15 @@ def serialize_list_metadata_formats(repo: RepositoryMeta, oai_request: OAIReques
     return serializers.serialize_list_metadata_formats(data)
 
 
+def serialize_bad_verb(repo: RepositoryMeta, oai_request: OAIRequest) -> bytes:
+    data = {
+            'repository': asdict(repo),
+            'request': asdict(oai_request),
+            }
+
+    return serializers.serialize_bad_verb(data)
+
+
 class Repository:
     def __init__(self, metadata: RepositoryMeta, ds: datastores.DataStore):
         self.metadata = metadata
@@ -88,7 +97,7 @@ class Repository:
         try:
             verb = verbs[oairequest.verb]
         except KeyError:
-            return '<p>Verb not supported</p>'.encode('utf-8')
+            return serialize_bad_verb(self.metadata, oairequest)
 
         return verb(oairequest)
 
