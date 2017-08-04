@@ -221,8 +221,12 @@ class ArticleResourceFacade:
         return titles
 
     def creator(self):
-        return [', '.join([author.get('surname', ''), author.get('given_names', '')])
-                for author in self.article.authors]
+        authors = self.article.authors
+        if authors:
+            return [', '.join([author.get('surname', ''), author.get('given_names', '')])
+                    for author in authors]
+        else:
+            return []
 
     def subject(self):
         subjects = []

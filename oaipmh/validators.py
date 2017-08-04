@@ -33,7 +33,7 @@ class OAIValidator:
         com a emissão de mensagens de log, pois permite que a validação seja
         executada de maneira preguiçosa.
         """
-        return self.validate()
+        return str(self.validate())
 
 
 def validate_on_debug(f):

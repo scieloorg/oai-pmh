@@ -103,15 +103,23 @@ class BadArgumentError(Exception):
 
 
 class check_request_args:
-    def __init__(self, allowed_args, checker):
+    """Valida os argumentos da requisição de acordo com as regras de cada verbo.
+
+    :param allowed_args: sequência com nomes dos argumentos esperados.
+    :param checking_func: função que receberá 2 argumentos: a sequência
+     ``allowed_args`` e a sequência de nomes dos atributos recebidos na 
+     requisição. A função deve retornar um valor booleano referente à
+     validade dos atributos.
+    """
+    def __init__(self, allowed_args, checking_func):
         self.allowed_args = set(allowed_args)
-        self.checker = checker
+        self.checking_func = checking_func
 
     def __call__(self, f):
         def wrapper(*args):
             _, oaireq = args  # opera apenas em instâncias de Repository
-            detected_args = [k for k, v in oaireq._asdict().items() if v]
-            if self.checker(self.allowed_args, detected_args):
+            detected_args = [k for k, v in asdict(oaireq).items() if v]
+            if self.checking_func(self.allowed_args, detected_args):
                 return f(*args)
             else:
                 raise BadArgumentError()
