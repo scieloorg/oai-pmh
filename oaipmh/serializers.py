@@ -132,6 +132,12 @@ def serialize_bad_verb(data):
     return output
 
 
+def serialize_bad_argument(data):
+    ppl = plumber.Pipeline(root, responsedate, request, badargument, tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
 #-----------------------------------------------------------------------------
 # Filtros e funções que operam a serialização dos dados
 #-----------------------------------------------------------------------------
@@ -439,12 +445,12 @@ class NoRecordsPipe(plumber.Filter):
         return (xml, data)
 
 
-class BadArgumentPipe(plumber.Filter):
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'error')
-        sub.attrib['code'] = 'badArgument'
-        return (xml, data)
+@plumber.filter
+def badargument(item):
+    xml, data = item
+    sub = etree.SubElement(xml, 'error')
+    sub.attrib['code'] = 'badArgument'
+    return item
 
 
 class MetadataFormatErrorPipe(plumber.Filter):
