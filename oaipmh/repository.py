@@ -108,6 +108,16 @@ def serialize_id_does_not_exist(repo: RepositoryMeta,
     return serializers.serialize_id_does_not_exist(data)
 
 
+def serialize_cannot_disseminate_format(repo: RepositoryMeta,
+        oai_request: OAIRequest) -> bytes:
+    data = {
+            'repository': asdict(repo),
+            'request': asdict(oai_request),
+            }
+
+    return serializers.serialize_cannot_disseminate_format(data)
+
+
 class BadArgumentError(Exception):
     """Lançada quando a requisição contém argumentos inválidos para o verbo
     definido.
@@ -155,16 +165,20 @@ class Repository:
     def __init__(self, metadata: RepositoryMeta, ds: datastores.DataStore):
         self.metadata = metadata
         self.ds = ds
-
-    def handle_request(self, oairequest):
-        verbs = {
+        self.formats = ['oai_dc']
+        self.verbs = {
                 'Identify': self._identify,
                 'GetRecord': self._get_record,
                 'ListRecords': self._list_records,
                 'ListIdentifiers': self._list_identifiers,
                 }
+
+    def handle_request(self, oairequest):
+        if oairequest.metadataPrefix not in self.formats:
+            return serialize_cannot_disseminate_format(self.metadata, oairequest)
+
         try:
-            verb = verbs[oairequest.verb]
+            verb = self.verbs[oairequest.verb]
         except KeyError:
             return serialize_bad_verb(self.metadata, oairequest)
 

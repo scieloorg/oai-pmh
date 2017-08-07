@@ -144,6 +144,13 @@ def serialize_id_does_not_exist(data):
     return output
 
 
+def serialize_cannot_disseminate_format(data):
+    ppl = plumber.Pipeline(root, responsedate, request, cannotdisseminateformat,
+            tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
 #-----------------------------------------------------------------------------
 # Filtros e funções que operam a serialização dos dados
 #-----------------------------------------------------------------------------
@@ -459,12 +466,12 @@ def badargument(item):
     return item
 
 
-class MetadataFormatErrorPipe(plumber.Filter):
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'error')
-        sub.attrib['code'] = 'cannotDisseminateFormat'
-        return (xml, data)
+@plumber.filter
+def cannotdisseminateformat(item):
+    xml, data = item
+    sub = etree.SubElement(xml, 'error')
+    sub.attrib['code'] = 'cannotDisseminateFormat'
+    return item
 
 
 class BadResumptionTokenPipe(plumber.Filter):
