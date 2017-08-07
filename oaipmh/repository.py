@@ -98,6 +98,16 @@ def serialize_bad_argument(repo: RepositoryMeta,
     return serializers.serialize_bad_argument(data)
 
 
+def serialize_id_does_not_exist(repo: RepositoryMeta,
+        oai_request: OAIRequest) -> bytes:
+    data = {
+            'repository': asdict(repo),
+            'request': asdict(oai_request),
+            }
+
+    return serializers.serialize_id_does_not_exist(data)
+
+
 class BadArgumentError(Exception):
     """Lançada quando a requisição contém argumentos inválidos para o verbo
     definido.
@@ -148,10 +158,10 @@ class Repository:
 
     def handle_request(self, oairequest):
         verbs = {
-                'Identify': self.identify,
-                'GetRecord': self.get_record,
-                'ListRecords': self.list_records,
-                'ListIdentifiers': self.list_identifiers,
+                'Identify': self._identify,
+                'GetRecord': self._get_record,
+                'ListRecords': self._list_records,
+                'ListIdentifiers': self._list_identifiers,
                 }
         try:
             verb = verbs[oairequest.verb]
@@ -162,24 +172,26 @@ class Repository:
             return verb(oairequest)
         except BadArgumentError:
             return serialize_bad_argument(self.metadata, oairequest)
+        except datastores.DoesNotExistError:
+            return serialize_id_does_not_exist(self.metadata, oairequest)
 
     @check_request_args(functools.partial(is_equal, ['verb']))
-    def identify(self, oairequest):
+    def _identify(self, oairequest):
         return serialize_identify(self.metadata, oairequest)
 
     @check_request_args(functools.partial(is_equal, 
         ['verb', 'metadataPrefix', 'identifier']))
-    def get_record(self, oairequest):
+    def _get_record(self, oairequest):
         resource = self.ds.get(oairequest.identifier)
         return serialize_get_record(self.metadata, oairequest, resource)
 
     @check_request_args(check_incomplete_listings_args)
-    def list_records(self, oairequest):
+    def _list_records(self, oairequest):
         resources = self.ds.list(_from=oairequest.from_, until=oairequest.until)
         return serialize_list_records(self.metadata, oairequest, resources)
 
     @check_request_args(check_incomplete_listings_args)
-    def list_identifiers(self, oairequest):
+    def _list_identifiers(self, oairequest):
         resources = self.ds.list(_from=oairequest.from_, until=oairequest.until)
         return serialize_list_identifiers(self.metadata, oairequest, resources)
 

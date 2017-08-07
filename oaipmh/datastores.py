@@ -306,6 +306,18 @@ class ArticleResourceFacade:
                         rights=self.rights())
 
 
+def is_spurious_doc(doc):
+    """Instâncias de ``xylose.scielodocument.Article`` são produzidas pelo
+    articlemetaapi mesmo para consultas a documentos que não existem.
+    """
+    try:
+        doc.original_language()
+    except TypeError:
+        return True
+    else:
+        return False
+
+
 class ArticleMeta(DataStore):
     def __init__(self, client: BoundArticleMetaClient):
         self.client = client
@@ -315,6 +327,8 @@ class ArticleMeta(DataStore):
 
     def get(self, ridentifier):
         doc = self.client.document(ridentifier)
+        if is_spurious_doc(doc):
+            raise DoesNotExistError()
         return ArticleResourceFacade(doc).to_resource()
 
     def list(self, sets=None, offset=0, count=1000, _from=None, until=None):
