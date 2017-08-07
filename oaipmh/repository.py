@@ -1,3 +1,5 @@
+import functools
+import operator
 from typing import Iterable
 from collections import namedtuple
 
@@ -105,29 +107,38 @@ class BadArgumentError(Exception):
 class check_request_args:
     """Valida os argumentos da requisição de acordo com as regras de cada verbo.
 
-    :param allowed_args: sequência com nomes dos argumentos esperados.
-    :param checking_func: função que receberá 2 argumentos: a sequência
-     ``allowed_args`` e a sequência de nomes dos atributos recebidos na 
-     requisição. A função deve retornar um valor booleano referente à
-     validade dos atributos.
+    :param checking_func: função que receberá como argumento a sequência de
+    nomes dos atributos recebidos na requisição. A função deve retornar um
+    valor booleano referente à validade dos atributos.
     """
-    def __init__(self, allowed_args, checking_func):
-        self.allowed_args = set(allowed_args)
+    def __init__(self, checking_func):
         self.checking_func = checking_func
 
     def __call__(self, f):
         def wrapper(*args):
             _, oaireq = args  # opera apenas em instâncias de Repository
             detected_args = [k for k, v in asdict(oaireq).items() if v]
-            if self.checking_func(self.allowed_args, detected_args):
+            if self.checking_func(detected_args):
                 return f(*args)
             else:
                 raise BadArgumentError()
         return wrapper
 
 
-def is_equal(allowed_args, detected_args):
-    return set(allowed_args) == set(detected_args)
+def is_equal(expected_args, detected_args):
+    return set(expected_args) == set(detected_args)
+
+
+def check_incomplete_listings_args(detected_args):
+    args = set(detected_args)
+    if 'verb' not in args:
+        return False
+
+    if 'resumptionToken' in args:
+        return not any((operator.contains(args, arg)
+                        for arg in ['from', 'until', 'set', 'metadataPrefix']))
+    else:
+        return 'metadataPrefix' in args
 
 
 class Repository:
@@ -136,8 +147,12 @@ class Repository:
         self.ds = ds
 
     def handle_request(self, oairequest):
-        verbs = {'Identify': self.identify, 'GetRecord': self.get_record,
-                'ListRecords': self.list_records}
+        verbs = {
+                'Identify': self.identify,
+                'GetRecord': self.get_record,
+                'ListRecords': self.list_records,
+                'ListIdentifiers': self.list_identifiers,
+                }
         try:
             verb = verbs[oairequest.verb]
         except KeyError:
@@ -148,16 +163,23 @@ class Repository:
         except BadArgumentError:
             return serialize_bad_argument(self.metadata, oairequest)
 
-    @check_request_args(['verb'], is_equal)
+    @check_request_args(functools.partial(is_equal, ['verb']))
     def identify(self, oairequest):
         return serialize_identify(self.metadata, oairequest)
 
-    @check_request_args(['verb', 'metadataPrefix', 'identifier'], is_equal)
+    @check_request_args(functools.partial(is_equal, 
+        ['verb', 'metadataPrefix', 'identifier']))
     def get_record(self, oairequest):
         resource = self.ds.get(oairequest.identifier)
         return serialize_get_record(self.metadata, oairequest, resource)
 
+    @check_request_args(check_incomplete_listings_args)
     def list_records(self, oairequest):
         resources = self.ds.list(_from=oairequest.from_, until=oairequest.until)
         return serialize_list_records(self.metadata, oairequest, resources)
+
+    @check_request_args(check_incomplete_listings_args)
+    def list_identifiers(self, oairequest):
+        resources = self.ds.list(_from=oairequest.from_, until=oairequest.until)
+        return serialize_list_identifiers(self.metadata, oairequest, resources)
 
