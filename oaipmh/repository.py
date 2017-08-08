@@ -228,6 +228,7 @@ class Repository:
         resources = self._filter_records(oairequest)
         return serialize_list_identifiers(self.metadata, oairequest, resources)
 
+    @check_request_args(functools.partial(is_equal, ['verb']))
     def _list_metadata_formats(self, oairequest):
         fmts = [fmt['metadata'] for fmt in self.formats.values()]
         return serialize_list_metadata_formats(self.metadata, oairequest, fmts)
