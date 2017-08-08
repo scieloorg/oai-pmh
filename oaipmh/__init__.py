@@ -6,7 +6,17 @@ from pyramid.events import NewRequest
 from oaipmh import (
         repository,
         datastores,
+        formatters,
         )
+
+
+METADATA_FORMATS = [
+        (repository.MetadataFormat(
+            metadataPrefix='oai_dc',
+            schema='http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
+            metadataNamespace='http://www.openarchives.org/OAI/2.0/oai_dc/'),
+         formatters.oai_dc.make_metadata),
+        ]
 
 
 DEFAULT_SETTINGS = [
@@ -68,6 +78,9 @@ def add_oai_repository(event):
     settings = event.request.registry.settings
     event.request.repository = repository.Repository(
             settings['repository_meta'], get_datastore(settings))
+
+    for metadata, formatter in METADATA_FORMATS:
+        event.request.repository.add_metadataformat(metadata, formatter)
 
 
 def main(global_config, **settings):

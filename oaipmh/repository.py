@@ -166,18 +166,22 @@ class Repository:
     def __init__(self, metadata: RepositoryMeta, ds: datastores.DataStore):
         self.metadata = metadata
         self.ds = ds
-        self.formats = {'oai_dc': oai_dc.make_metadata}
+        self.formats = {}
         self.verbs = {
                 'Identify': self._identify,
                 'GetRecord': self._get_record,
                 'ListRecords': self._list_records,
                 'ListIdentifiers': self._list_identifiers,
+                'ListMetadataFormats': self._list_metadata_formats,
+                }
+
+    def add_metadataformat(self, metadata: MetadataFormat, formatter):
+        self.formats[metadata.metadataPrefix] = {
+                'metadata': metadata,
+                'formatter': formatter,
                 }
 
     def handle_request(self, oairequest):
-        if oairequest.metadataPrefix not in self.formats:
-            return serialize_cannot_disseminate_format(self.metadata, oairequest)
-
         try:
             verb = self.verbs[oairequest.verb]
         except KeyError:
@@ -197,9 +201,13 @@ class Repository:
     @check_request_args(functools.partial(is_equal, 
         ['verb', 'metadataPrefix', 'identifier']))
     def _get_record(self, oairequest):
+        if oairequest.metadataPrefix not in self.formats:
+            return serialize_cannot_disseminate_format(self.metadata, oairequest)
+
+        formatter = self.formats[oairequest.metadataPrefix]['formatter']
         resource = self.ds.get(oairequest.identifier)
         return serialize_get_record(self.metadata, oairequest, resource,
-                metadata_formatter=self.formats[oairequest.metadataPrefix])
+                metadata_formatter=formatter)
 
     def _filter_records(self, oairequest):
         resources = self.ds.list(_from=oairequest.from_, until=oairequest.until)
@@ -207,12 +215,20 @@ class Repository:
 
     @check_request_args(check_incomplete_listings_args)
     def _list_records(self, oairequest):
+        if oairequest.metadataPrefix not in self.formats:
+            return serialize_cannot_disseminate_format(self.metadata, oairequest)
+
+        formatter = self.formats[oairequest.metadataPrefix]['formatter']
         resources = self._filter_records(oairequest)
         return serialize_list_records(self.metadata, oairequest, resources,
-                metadata_formatter=self.formats[oairequest.metadataPrefix])
+                metadata_formatter=formatter)
 
     @check_request_args(check_incomplete_listings_args)
     def _list_identifiers(self, oairequest):
         resources = self._filter_records(oairequest)
         return serialize_list_identifiers(self.metadata, oairequest, resources)
+
+    def _list_metadata_formats(self, oairequest):
+        fmts = [fmt['metadata'] for fmt in self.formats.values()]
+        return serialize_list_metadata_formats(self.metadata, oairequest, fmts)
 
