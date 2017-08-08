@@ -70,7 +70,6 @@ from datetime import datetime
 import plumber
 from lxml import etree
 
-from .formatters import oai_dc
 from . import validators
 
 
@@ -106,15 +105,17 @@ def serialize_list_identifiers(data):
 
 
 @validators.validate_on_debug
-def serialize_list_records(data):
-    ppl = plumber.Pipeline(root, responsedate, request, listrecords, tobytes)
+def serialize_list_records(data, metadata_formatter):
+    ppl = plumber.Pipeline(root, responsedate, request,
+            listrecords(metadata_formatter), tobytes)
     output = next(ppl.run(data, rewrap=True))
     return output
 
 
 @validators.validate_on_debug
-def serialize_get_record(data):
-    ppl = plumber.Pipeline(root, responsedate, request, getrecord, tobytes)
+def serialize_get_record(data, metadata_formatter):
+    ppl = plumber.Pipeline(root, responsedate, request, 
+            getrecord(metadata_formatter), tobytes)
     output = next(ppl.run(data, rewrap=True))
     return output
 
@@ -394,42 +395,48 @@ def listsets(item):
     return item
 
 
-def make_record(record_data):
+def make_record(record_data, formatter):
     record = etree.Element('record')
 
     ppl = plumber.Pipeline(
         header,
     )
     xmltree, _ = next(ppl.run((record, record_data), rewrap=True))
-    xmltree.append(oai_dc.make_metadata(record_data))
+    xmltree.append(formatter(record_data))
 
     return xmltree
 
 
-@plumber.filter
-def getrecord(item):
-    xml, data = item
-    sub = etree.SubElement(xml, 'GetRecord')
+class getrecord(plumber.Filter):
+    def __init__(self, metadata_formatter):
+        self.metadata_formatter = metadata_formatter
 
-    records = (make_record(resource)
-               for resource in data.get('resources', []))
-    for rec in records:
-        sub.append(rec)
+    def transform(self, item):
+        xml, data = item
+        sub = etree.SubElement(xml, 'GetRecord')
 
-    return item
+        records = (make_record(resource, self.metadata_formatter)
+                   for resource in data.get('resources', []))
+        for rec in records:
+            sub.append(rec)
+
+        return item
 
 
-@plumber.filter
-def listrecords(item):
-    xml, data = item
-    sub = etree.SubElement(xml, 'ListRecords')
+class listrecords(plumber.Filter):
+    def __init__(self, metadata_formatter):
+        self.metadata_formatter = metadata_formatter
 
-    records = (make_record(resource)
-               for resource in data.get('resources', []))
-    for rec in records:
-        sub.append(rec)
+    def transform(self, item):
+        xml, data = item
+        sub = etree.SubElement(xml, 'ListRecords')
 
-    return item
+        records = (make_record(resource, self.metadata_formatter)
+                   for resource in data.get('resources', []))
+        for rec in records:
+            sub.append(rec)
+
+        return item
 
 
 @plumber.filter

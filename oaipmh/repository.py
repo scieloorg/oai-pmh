@@ -4,6 +4,7 @@ from typing import Iterable
 from collections import namedtuple
 
 from oaipmh import serializers, datastores
+from oaipmh.formatters import oai_dc
 
 
 RepositoryMeta = namedtuple('RepositoryMeta', '''repositoryName baseURL
@@ -36,25 +37,25 @@ def serialize_identify(repo: RepositoryMeta, oai_request: OAIRequest) -> bytes:
 
 
 def serialize_get_record(repo: RepositoryMeta, oai_request: OAIRequest,
-        resource: datastores.Resource) -> bytes:
+        resource: datastores.Resource, *, metadata_formatter) -> bytes:
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
             'resources': [asdict(resource)],
             }
 
-    return serializers.serialize_get_record(data)
+    return serializers.serialize_get_record(data, metadata_formatter)
 
 
 def serialize_list_records(repo: RepositoryMeta, oai_request: OAIRequest,
-        resources: Iterable[datastores.Resource]) -> bytes:
+        resources: Iterable[datastores.Resource], *, metadata_formatter) -> bytes:
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
             'resources': [asdict(resource) for resource in resources],
             }
 
-    return serializers.serialize_list_records(data)
+    return serializers.serialize_list_records(data, metadata_formatter)
 
 
 def serialize_list_identifiers(repo: RepositoryMeta, oai_request: OAIRequest,
@@ -165,7 +166,7 @@ class Repository:
     def __init__(self, metadata: RepositoryMeta, ds: datastores.DataStore):
         self.metadata = metadata
         self.ds = ds
-        self.formats = ['oai_dc']
+        self.formats = {'oai_dc': oai_dc.make_metadata}
         self.verbs = {
                 'Identify': self._identify,
                 'GetRecord': self._get_record,
@@ -197,15 +198,21 @@ class Repository:
         ['verb', 'metadataPrefix', 'identifier']))
     def _get_record(self, oairequest):
         resource = self.ds.get(oairequest.identifier)
-        return serialize_get_record(self.metadata, oairequest, resource)
+        return serialize_get_record(self.metadata, oairequest, resource,
+                metadata_formatter=self.formats[oairequest.metadataPrefix])
+
+    def _filter_records(self, oairequest):
+        resources = self.ds.list(_from=oairequest.from_, until=oairequest.until)
+        return resources
 
     @check_request_args(check_incomplete_listings_args)
     def _list_records(self, oairequest):
-        resources = self.ds.list(_from=oairequest.from_, until=oairequest.until)
-        return serialize_list_records(self.metadata, oairequest, resources)
+        resources = self._filter_records(oairequest)
+        return serialize_list_records(self.metadata, oairequest, resources,
+                metadata_formatter=self.formats[oairequest.metadataPrefix])
 
     @check_request_args(check_incomplete_listings_args)
     def _list_identifiers(self, oairequest):
-        resources = self.ds.list(_from=oairequest.from_, until=oairequest.until)
+        resources = self._filter_records(oairequest)
         return serialize_list_identifiers(self.metadata, oairequest, resources)
 
