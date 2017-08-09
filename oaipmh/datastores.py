@@ -118,6 +118,8 @@ class SliceableResultSetThriftClient(articlemeta_client.ThriftClient):
             until_date=None, extra_filter=None, limit=None, offset=None):
         limit = limit or articlemeta_client.LIMIT
         offset = offset or 0
+        from_date = from_date or articlemeta_client.DEFAULT_FROM_DATE
+        until_date = until_date or datetime.datetime.today().isoformat()[:10]
 
         try:
             with self.client_context() as client:

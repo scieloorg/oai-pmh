@@ -20,6 +20,10 @@ MetadataFormat = namedtuple('MetadataFormat', '''metadataPrefix schema
         metadataNamespace''')
 
 
+ResumptionToken = namedtuple('ResumptionToken', '''from_ until offset count
+        metadataPrefix''')
+
+
 def asdict(namedtupl):
     """Produz uma instância de ``dict`` à partir da namedtuple ``namedtupl``.
     Underscores no início ou fim do nome do atributo serão removidos.
@@ -48,7 +52,8 @@ def serialize_get_record(repo: RepositoryMeta, oai_request: OAIRequest,
 
 
 def serialize_list_records(repo: RepositoryMeta, oai_request: OAIRequest,
-        resources: Iterable[datastores.Resource], *, metadata_formatter) -> bytes:
+        resources: Iterable[datastores.Resource], *,
+        metadata_formatter) -> bytes:
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
@@ -232,4 +237,43 @@ class Repository:
     def _list_metadata_formats(self, oairequest):
         fmts = [fmt['metadata'] for fmt in self.formats.values()]
         return serialize_list_metadata_formats(self.metadata, oairequest, fmts)
+
+
+def encode_resumption_token(token: ResumptionToken) -> str:
+    """Codifica o ``token`` em string delimitada por ``:``.
+
+    Durante a codificação, todos os valores serão transformados em ``str``.
+    ``None`` será transformado em string vazia. 
+
+    É importante ter em mente que o processo de codificação faz com que os
+    tipos originais dos valores sejam perdidos, i.e., não é um processo
+    reversível.
+    """
+    def ensure_str(obj):
+        if obj is None:
+            return ''
+        else:
+            try:
+                return str(obj)
+            except:
+                return ''
+
+    parts = [ensure_str(part) for part in token]
+    return ':'.join(parts)
+
+
+def decode_resumption_token(token: str) -> ResumptionToken:
+    keys = ResumptionToken._fields
+    values = token.split(':')
+    kwargs = dict(zip(keys, values))
+    return ResumptionToken(**kwargs)
+
+
+def next_resumption_token(token: str) -> str:
+    """Avança o offset do token.
+    """
+    token_map = decode_resumption_token(token)._asdict()
+    token_map['offset'] = 1 + int(token_map['offset']) + int(token_map['count'])
+    new_token_obj = ResumptionToken(**token_map)
+    return encode_resumption_token(new_token_obj)
 
