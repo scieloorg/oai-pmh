@@ -78,14 +78,22 @@ class decode_resumption_tokenTests(unittest.TestCase):
                     metadataPrefix='oai_dc'))
 
 
-class next_resumption_tokenTests(unittest.TestCase):
+class inc_resumption_tokenTests(unittest.TestCase):
     def test_only_offset_advances(self):
-        token = '1998-01-01:1998-12-31:0:1000:oai_dc'
-        self.assertEqual(repository.next_resumption_token(token),
-                '1998-01-01:1998-12-31:1001:1000:oai_dc')
+        token = repository.ResumptionToken(from_='1998-01-01',
+            until='1998-12-31', offset='0', count='1000',
+            metadataPrefix='oai_dc')
+        self.assertEqual(repository.inc_resumption_token(token),
+                repository.ResumptionToken(from_='1998-01-01',
+                    until='1998-12-31', offset='1001', count='1000',
+                    metadataPrefix='oai_dc'))
 
     def test_offset_advances_according_to_declared_count(self):
-        token = '1998-01-01:1998-12-31:0:10:oai_dc'
-        self.assertEqual(repository.next_resumption_token(token),
-                '1998-01-01:1998-12-31:11:10:oai_dc')
+        token = repository.ResumptionToken(from_='1998-01-01',
+            until='1998-12-31', offset='0', count='10',
+            metadataPrefix='oai_dc')
+        self.assertEqual(repository.inc_resumption_token(token),
+                repository.ResumptionToken(from_='1998-01-01',
+                    until='1998-12-31', offset='11', count='10',
+                    metadataPrefix='oai_dc'))
 

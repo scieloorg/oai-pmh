@@ -368,6 +368,9 @@ def listidentifiers(item):
     add_headers_ppl = plumber.Pipeline(header)
     for _ in add_headers_ppl.run(resources_data): pass
 
+    listidentifiers_elem.append(
+            make_resumptiontoken(data.get('resumptionToken', '')))
+
     return item
 
 
@@ -436,7 +439,15 @@ class listrecords(plumber.Filter):
         for rec in records:
             sub.append(rec)
 
+        sub.append(make_resumptiontoken(data.get('resumptionToken', '')))
+
         return item
+
+
+def make_resumptiontoken(token_data):
+    elem = etree.Element('resumptionToken')
+    elem.text = token_data
+    return elem
 
 
 @plumber.filter

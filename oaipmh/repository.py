@@ -52,23 +52,25 @@ def serialize_get_record(repo: RepositoryMeta, oai_request: OAIRequest,
 
 
 def serialize_list_records(repo: RepositoryMeta, oai_request: OAIRequest,
-        resources: Iterable[datastores.Resource], *,
-        metadata_formatter) -> bytes:
+        resources: Iterable[datastores.Resource],
+        resumption_token: ResumptionToken, *, metadata_formatter) -> bytes:
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
             'resources': [asdict(resource) for resource in resources],
+            'resumptionToken': encode_resumption_token(resumption_token),
             }
-
     return serializers.serialize_list_records(data, metadata_formatter)
 
 
 def serialize_list_identifiers(repo: RepositoryMeta, oai_request: OAIRequest,
-        resources: Iterable[datastores.Resource]) -> bytes:
+        resources: Iterable[datastores.Resource],
+        resumption_token: ResumptionToken) -> bytes:
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
             'resources': [asdict(resource) for resource in resources],
+            'resumptionToken': encode_resumption_token(resumption_token),
             }
 
     return serializers.serialize_list_identifiers(data)
@@ -214,29 +216,44 @@ class Repository:
         return serialize_get_record(self.metadata, oairequest, resource,
                 metadata_formatter=formatter)
 
-    def _filter_records(self, oairequest):
-        resources = self.ds.list(_from=oairequest.from_, until=oairequest.until)
+    def _filter_records(self, token: ResumptionToken):
+        resources = self.ds.list(_from=token.from_, until=token.until,
+                offset=int(token.offset), count=int(token.count))
         return resources
 
     @check_request_args(check_incomplete_listings_args)
     def _list_records(self, oairequest):
-        if oairequest.metadataPrefix not in self.formats:
-            return serialize_cannot_disseminate_format(self.metadata, oairequest)
+        if not oairequest.resumptionToken:
+            if oairequest.metadataPrefix not in self.formats:
+                return serialize_cannot_disseminate_format(self.metadata, oairequest)
 
-        formatter = self.formats[oairequest.metadataPrefix]['formatter']
-        resources = self._filter_records(oairequest)
+        token = get_resumption_token_from_request(oairequest)
+        formatter = self.formats[token.metadataPrefix]['formatter']
+        resources = list(self._filter_records(token))
+        next_token = next_resumption_token(token, resources)
         return serialize_list_records(self.metadata, oairequest, resources,
-                metadata_formatter=formatter)
+                next_token, metadata_formatter=formatter)
 
     @check_request_args(check_incomplete_listings_args)
     def _list_identifiers(self, oairequest):
-        resources = self._filter_records(oairequest)
-        return serialize_list_identifiers(self.metadata, oairequest, resources)
+        token = get_resumption_token_from_request(oairequest)
+        resources = list(self._filter_records(token))
+        next_token = next_resumption_token(token, resources)
+        return serialize_list_identifiers(self.metadata, oairequest, resources,
+                next_token)
 
     @check_request_args(functools.partial(is_equal, ['verb']))
     def _list_metadata_formats(self, oairequest):
         fmts = [fmt['metadata'] for fmt in self.formats.values()]
         return serialize_list_metadata_formats(self.metadata, oairequest, fmts)
+
+
+def get_resumption_token_from_request(oairequest: OAIRequest) -> ResumptionToken:
+    if oairequest.resumptionToken:
+        return decode_resumption_token(oairequest.resumptionToken)
+    else:
+        return ResumptionToken(from_=oairequest.from_, until=oairequest.until,
+                offset='0', count='100', metadataPrefix=oairequest.metadataPrefix)
 
 
 def encode_resumption_token(token: ResumptionToken) -> str:
@@ -269,11 +286,31 @@ def decode_resumption_token(token: str) -> ResumptionToken:
     return ResumptionToken(**kwargs)
 
 
-def next_resumption_token(token: str) -> str:
+def inc_resumption_token(token: ResumptionToken) -> ResumptionToken:
     """Avança o offset do token.
     """
-    token_map = decode_resumption_token(token)._asdict()
-    token_map['offset'] = 1 + int(token_map['offset']) + int(token_map['count'])
-    new_token_obj = ResumptionToken(**token_map)
-    return encode_resumption_token(new_token_obj)
+    token_map = token._asdict()
+    new_offset = 1 + int(token_map['offset']) + int(token_map['count'])
+    token_map['offset'] = str(new_offset)
+    return ResumptionToken(**token_map)
+
+
+def has_more_resources(resources: Iterable, batch_size: int) -> bool:
+    """Verifica se ``resources`` completa a lista de recursos.
+
+    Se a quantidade de itens em ``resources`` for menor do que ``batch_size``, 
+    consideramos se tratar do último conjunto de resultados. Caso a 
+    quantidade seja igual, consideramos que existirá o próximo conjunto.
+    """
+    return len(resources) == int(batch_size)
+
+
+def next_resumption_token(token: ResumptionToken, resources: Iterable) -> str:
+    """Retorna o próximo resumption token com base no atual e seq de
+    ``resources`` resultado da requisição corrente.
+    """
+    if has_more_resources(resources, token.count):
+        return inc_resumption_token(token)
+    else:
+        return ''
 
