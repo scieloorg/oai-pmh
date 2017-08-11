@@ -54,11 +54,17 @@ def serialize_get_record(repo: RepositoryMeta, oai_request: OAIRequest,
 def serialize_list_records(repo: RepositoryMeta, oai_request: OAIRequest,
         resources: Iterable[datastores.Resource],
         resumption_token: ResumptionToken, *, metadata_formatter) -> bytes:
+
+    if resumption_token is None:
+        encoded_resumption_token = ''
+    else:
+        encoded_resumption_token = encode_resumption_token(resumption_token)
+
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
             'resources': [asdict(resource) for resource in resources],
-            'resumptionToken': encode_resumption_token(resumption_token),
+            'resumptionToken': encoded_resumption_token,
             }
     return serializers.serialize_list_records(data, metadata_formatter)
 
@@ -66,11 +72,17 @@ def serialize_list_records(repo: RepositoryMeta, oai_request: OAIRequest,
 def serialize_list_identifiers(repo: RepositoryMeta, oai_request: OAIRequest,
         resources: Iterable[datastores.Resource],
         resumption_token: ResumptionToken) -> bytes:
+
+    if resumption_token is None:
+        encoded_resumption_token = ''
+    else:
+        encoded_resumption_token = encode_resumption_token(resumption_token)
+
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
             'resources': [asdict(resource) for resource in resources],
-            'resumptionToken': encode_resumption_token(resumption_token),
+            'resumptionToken': encoded_resumption_token,
             }
 
     return serializers.serialize_list_identifiers(data)
@@ -305,12 +317,12 @@ def has_more_resources(resources: Iterable, batch_size: int) -> bool:
     return len(resources) == int(batch_size)
 
 
-def next_resumption_token(token: ResumptionToken, resources: Iterable) -> str:
+def next_resumption_token(token: ResumptionToken, resources: Iterable) -> ResumptionToken:
     """Retorna o próximo resumption token com base no atual e seq de
     ``resources`` resultado da requisição corrente.
     """
     if has_more_resources(resources, token.count):
         return inc_resumption_token(token)
     else:
-        return ''
+        return None
 
