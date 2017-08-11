@@ -1,3 +1,4 @@
+import re
 import functools
 import operator
 from typing import Iterable
@@ -22,6 +23,9 @@ MetadataFormat = namedtuple('MetadataFormat', '''metadataPrefix schema
 
 ResumptionToken = namedtuple('ResumptionToken', '''from_ until offset count
         metadataPrefix''')
+
+
+RESUMPTION_TOKEN_PATTERN = re.compile(r'^((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:\w+$')
 
 
 def asdict(namedtupl):
@@ -138,9 +142,24 @@ def serialize_cannot_disseminate_format(repo: RepositoryMeta,
     return serializers.serialize_cannot_disseminate_format(data)
 
 
+def serialize_bad_resumption_token(repo: RepositoryMeta,
+        oai_request: OAIRequest) -> bytes:
+    data = {
+            'repository': asdict(repo),
+            'request': asdict(oai_request),
+            }
+
+    return serializers.serialize_bad_resumption_token(data)
+
+
 class BadArgumentError(Exception):
     """Lançada quando a requisição contém argumentos inválidos para o verbo
     definido.
+    """
+
+
+class BadResumptionTokenError(Exception):
+    """Lançada quando o valor do argumento ``resumptionToken`` é inválido.
     """
 
 
@@ -212,6 +231,8 @@ class Repository:
             return serialize_bad_argument(self.metadata, oairequest)
         except datastores.DoesNotExistError:
             return serialize_id_does_not_exist(self.metadata, oairequest)
+        except BadResumptionTokenError:
+            return serialize_bad_resumption_token(self.metadata, oairequest)
 
     @check_request_args(functools.partial(is_equal, ['verb']))
     def _identify(self, oairequest):
@@ -292,6 +313,9 @@ def encode_resumption_token(token: ResumptionToken) -> str:
 
 
 def decode_resumption_token(token: str) -> ResumptionToken:
+    if not is_valid_resumption_token(token):
+        raise BadResumptionTokenError()
+
     keys = ResumptionToken._fields
     values = token.split(':')
     kwargs = dict(zip(keys, values))
@@ -325,4 +349,8 @@ def next_resumption_token(token: ResumptionToken, resources: Iterable) -> Resump
         return inc_resumption_token(token)
     else:
         return None
+
+
+def is_valid_resumption_token(token: str) -> bool:
+    return bool(RESUMPTION_TOKEN_PATTERN.fullmatch(token))
 

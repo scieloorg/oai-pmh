@@ -152,6 +152,13 @@ def serialize_cannot_disseminate_format(data):
     return output
 
 
+def serialize_bad_resumption_token(data):
+    ppl = plumber.Pipeline(root, responsedate, request, badresumptiontoken,
+            tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
 #-----------------------------------------------------------------------------
 # Filtros e funções que operam a serialização dos dados
 #-----------------------------------------------------------------------------
@@ -492,10 +499,10 @@ def cannotdisseminateformat(item):
     return item
 
 
-class BadResumptionTokenPipe(plumber.Filter):
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'error')
-        sub.attrib['code'] = 'badResumptionToken'
-        return (xml, data)
+@plumber.filter
+def badresumptiontoken(item):
+    xml, data = item
+    sub = etree.SubElement(xml, 'error')
+    sub.attrib['code'] = 'badResumptionToken'
+    return item
 
