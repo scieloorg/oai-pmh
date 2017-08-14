@@ -25,7 +25,10 @@ ResumptionToken = namedtuple('ResumptionToken', '''from_ until offset count
         metadataPrefix''')
 
 
-RESUMPTION_TOKEN_PATTERN = re.compile(r'^((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:\w+$')
+RESUMPTION_TOKEN_PATTERNS = {
+        'ListRecords': re.compile(r'^((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:\w+$'),
+        'ListIdentifiers': re.compile(r'^((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:$'),
+        }
 
 
 def asdict(namedtupl):
@@ -188,7 +191,7 @@ def is_equal(expected_args, detected_args):
     return set(expected_args) == set(detected_args)
 
 
-def check_incomplete_listings_args(detected_args):
+def check_incomplete_records_list(detected_args):
     args = set(detected_args)
     if 'verb' not in args:
         return False
@@ -198,6 +201,18 @@ def check_incomplete_listings_args(detected_args):
                         for arg in ['from', 'until', 'set', 'metadataPrefix']))
     else:
         return 'metadataPrefix' in args
+
+
+def check_incomplete_identifiers_list(detected_args):
+    args = set(detected_args)
+    if 'verb' not in args:
+        return False
+
+    if 'resumptionToken' in args:
+        return not any((operator.contains(args, arg)
+                        for arg in ['from', 'until', 'set']))
+    else:
+        return True
 
 
 class Repository:
@@ -254,7 +269,7 @@ class Repository:
                 offset=int(token.offset), count=int(token.count))
         return resources
 
-    @check_request_args(check_incomplete_listings_args)
+    @check_request_args(check_incomplete_records_list)
     def _list_records(self, oairequest):
         if not oairequest.resumptionToken:
             if oairequest.metadataPrefix not in self.formats:
@@ -267,7 +282,7 @@ class Repository:
         return serialize_list_records(self.metadata, oairequest, resources,
                 next_token, metadata_formatter=formatter)
 
-    @check_request_args(check_incomplete_listings_args)
+    @check_request_args(check_incomplete_identifiers_list)
     def _list_identifiers(self, oairequest):
         token = get_resumption_token_from_request(oairequest)
         resources = list(self._filter_records(token))
@@ -283,6 +298,10 @@ class Repository:
 
 def get_resumption_token_from_request(oairequest: OAIRequest) -> ResumptionToken:
     if oairequest.resumptionToken:
+        pattern = RESUMPTION_TOKEN_PATTERNS[oairequest.verb]
+        if not is_valid_resumption_token(oairequest.resumptionToken, pattern):
+            raise BadResumptionTokenError()
+
         return decode_resumption_token(oairequest.resumptionToken)
     else:
         return ResumptionToken(from_=oairequest.from_, until=oairequest.until,
@@ -313,9 +332,6 @@ def encode_resumption_token(token: ResumptionToken) -> str:
 
 
 def decode_resumption_token(token: str) -> ResumptionToken:
-    if not is_valid_resumption_token(token):
-        raise BadResumptionTokenError()
-
     keys = ResumptionToken._fields
     values = token.split(':')
     kwargs = dict(zip(keys, values))
@@ -351,6 +367,6 @@ def next_resumption_token(token: ResumptionToken, resources: Iterable) -> Resump
         return None
 
 
-def is_valid_resumption_token(token: str) -> bool:
-    return bool(RESUMPTION_TOKEN_PATTERN.fullmatch(token))
+def is_valid_resumption_token(token: str, pattern: str) -> bool:
+    return bool(pattern.fullmatch(token))
 
