@@ -179,6 +179,7 @@ class ListIdentifiersTests(unittest.TestCase):
         xml_str += '<setSpec>cs</setSpec>'
         xml_str += '<setSpec>math</setSpec>'
         xml_str += '</header>'
+        xml_str += '<resumptionToken></resumptionToken>'
         xml_str += '</ListIdentifiers>'
         xml_str += '</root>'
 
