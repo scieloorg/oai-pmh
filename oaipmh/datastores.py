@@ -1,9 +1,15 @@
 import abc
-from typing import List, Iterable
 from collections import namedtuple
 import itertools
 import datetime
-
+import functools
+import json
+from typing import (
+        List,
+        Iterable,
+        Callable,
+        Dict,
+        )
 
 from articlemeta import client as articlemeta_client
 
@@ -42,9 +48,23 @@ Resource = namedtuple('Resource', '''ridentifier datestamp setspec title
         identifier source language relation rights''')
 
 
+Journal = namedtuple('Journal', '''title lead_issn''')
+
+
 class DoesNotExistError(Exception):
     """Quando nenhum recurso corresponde ao ``ridentifier`` informado.
     """
+
+
+class ViewDoesNotExistError(Exception):
+    """Quando se tenta recuperar uma view que não existe em um repositório.
+    """
+
+
+def identityview(f):
+    """Retorna a função que recebeu como argumento, inalterada.
+    """
+    return f
 
 
 class DataStore(metaclass=abc.ABCMeta):
@@ -65,13 +85,14 @@ class DataStore(metaclass=abc.ABCMeta):
         return NotImplemented
 
     @abc.abstractmethod
-    def list(self, sets: List[str] = None, offset: int = 0,
-            count: int = 1000, _from: str = None, 
-            until: str = None) -> Iterable[Resource]:
-        """Produz uma coleção dos recursos contidos em todos os ``sets``.
+    def list(self, view: Callable=None, offset: int=0, count: int=1000,
+            _from: str=None, until: str=None) -> Iterable[Resource]:
+        """Produz uma coleção de objetos ``Resource``.
 
-        Os argumentos ``offset`` e ``count`` permitem que o a coleção seja 
-        produzida por partes.
+        Os argumentos ``offset`` e ``count`` permitem o retorno de partes
+        do resultado da consulta.
+        :param view: (opcional) função de ordem superior para a filtragem de 
+        registros. caso não informada, a consulta se dará sob todos os registros.
         """
         return NotImplemented
 
@@ -81,8 +102,9 @@ def datestamp_to_tuple(datestamp):
 
 
 class InMemory(DataStore):
-    def __init__(self):
+    def __init__(self, views: Dict[str, Callable]=None):
         self.data = {}
+        self.views = dict(views) if views else {}
 
     def add(self, resource):
         self.data[resource.ridentifier] = resource
@@ -93,13 +115,12 @@ class InMemory(DataStore):
         except KeyError:
             raise DoesNotExistError() from None
 
-    def list(self, sets=None, offset=0, count=1000, _from=None, until=None):
+    def list(self, view=None, offset=0, count=1000, _from=None, until=None):
         ds2tup = datestamp_to_tuple
-        sets = set(sets) if sets else set()
+        view_fn = view or identityview
+        query_fn = view_fn(self.data.values)
 
-        ds = self.data.values()
-        if sets:
-            ds = (res for res in ds if sets.intersection(set(res.setspec)))
+        ds = query_fn()
         if _from:
             ds = (res for res in ds if ds2tup(res.datestamp) >= ds2tup(_from))
         if until:
@@ -158,6 +179,40 @@ class SliceableResultSetThriftClient(articlemeta_client.ThriftClient):
                 )
                 yield document
 
+    def __journals_ids(self, collection=None, issn=None, limit=None,
+            offset=None):
+        limit = limit or articlemeta_client.LIMIT
+        offset = offset or 0
+
+        try:
+            with self.client_context() as client:
+                identifiers = client.get_journal_identifiers(
+                    collection=collection, issn=issn,
+                    limit=limit, offset=offset)
+        except self.ARTICLEMETA_THRIFT.ServerError:
+            msg = 'Error retrieving list of journals identifiers: %s_%s' % (collection, issn)
+            raise articlemeta_client.ServerError(msg)
+
+        if len(identifiers) == 0:
+            return
+
+        for identifier in identifiers:
+            yield identifier
+
+    def journals(self, collection=None, issn=None, only_identifiers=False,
+            limit=None, offset=None):
+        identifiers = self.__journals_ids(collection=collection, issn=issn,
+                limit=limit, offset=offset)
+        for identifier in identifiers:
+            if only_identifiers:
+                yield identifier
+            else:
+                journal = self.journal(
+                    identifier.code,
+                    identifier.collection,
+                )
+                yield journal
+
 
 class BoundArticleMetaClient:
     """Cliente da API ArticleMeta cujas consultas são vinculadas ao conteúdo
@@ -171,10 +226,18 @@ class BoundArticleMetaClient:
         return self.client.document(code, self.collection)
 
     def documents(self, issn=None, from_date=None, until_date=None,
-            offset=0, limit=1000):
+            offset=0, limit=1000, extra_filter=None):
         return self.client.documents(collection=self.collection, issn=issn,
                 from_date=from_date, until_date=until_date, offset=offset,
-                limit=limit)
+                limit=limit, extra_filter=extra_filter)
+
+    def journals(self, issn=None, only_identifiers=False, limit=None,
+            offset=None):
+        return self.client.journals(collection=self.collection, issn=issn,
+                only_identifiers=only_identifiers, offset=offset, limit=limit)
+
+    def journal(self, code):
+        return self.client.journal(code, self.collection)
 
 
 def get_articlemeta_client(collection, **kwargs):
@@ -308,6 +371,15 @@ class ArticleResourceFacade:
                         rights=self.rights())
 
 
+def journal_from_articlemeta(journal):
+    """Produz uma instância de ``Journal`` com base em ``journal``.
+
+    :param journal: instância de ``xylose.scielodocument.Journal``.
+    """
+    return Journal(title=journal.title,
+                   lead_issn=journal.scielo_issn)
+
+
 def is_spurious_doc(doc):
     """Instâncias de ``xylose.scielodocument.Article`` são produzidas pelo
     articlemetaapi mesmo para consultas a documentos que não existem.
@@ -318,6 +390,20 @@ def is_spurious_doc(doc):
         return True
     else:
         return False
+
+
+class ArticleMetaFilteredView:
+    """Um conjunto de resultados de uma consulta prévia aos registros. Algo
+    similar ao conceito de View em SGBDs relacionais.
+
+    >>> bmj = datastores.ArticleMetaFilteredView({"code_title": "0001-3714"})
+    >>> [doc.ridentifier for doc in client.list(view=bmj)]
+    """
+    def __init__(self, term):
+        self.term = json.dumps(dict(term))
+
+    def __call__(self, query_fn):
+        return functools.partial(query_fn, extra_filter=self.term)
 
 
 class ArticleMeta(DataStore):
@@ -333,9 +419,22 @@ class ArticleMeta(DataStore):
             raise DoesNotExistError()
         return ArticleResourceFacade(doc).to_resource()
 
-    def list(self, sets=None, offset=0, count=1000, _from=None, until=None):
-        docs = self.client.documents(offset=offset, limit=count,
+    def list(self, view=None, offset=0, count=1000, _from=None, until=None):
+        view_fn = view or identityview
+        query_fn = view_fn(self.client.documents)
+
+        docs = query_fn(offset=offset, limit=count,
                 from_date=_from, until_date=until)
         return (ArticleResourceFacade(doc).to_resource()
                 for doc in docs)
+
+    def get_journal(self, issn):
+        journal = self.client.journal(issn)
+        if journal is None:
+            raise DoesNotExistError()
+        return journal_from_articlemeta(journal)
+
+    def list_journals(self, offset=0, count=1000):
+        journals = self.client.journals(offset=offset, limit=count)
+        return (journal_from_articlemeta(j) for j in journals)
 

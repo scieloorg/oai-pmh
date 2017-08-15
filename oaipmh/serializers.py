@@ -402,6 +402,8 @@ def listsets(item):
     for _set in sets:
         sub.append(_set)
 
+    sub.append(make_resumptiontoken(data.get('resumptionToken', '')))
+
     return item
 
 

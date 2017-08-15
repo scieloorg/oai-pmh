@@ -256,6 +256,7 @@ class ListSetsTests(unittest.TestCase):
         xml_str += '<setSpec>foo</setSpec>'
         xml_str += '<setName>bar</setName>'
         xml_str += '</set>'
+        xml_str += '<resumptionToken></resumptionToken>'
         xml_str += '</ListSets>'
         xml_str += '</root>'
 

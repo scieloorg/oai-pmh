@@ -242,7 +242,7 @@ class MakeListSetsTests(SchemaValidatorMixin, unittest.TestCase):
     @patch('oaipmh.serializers.datetime')
     def test_correct_usage(self, mock_utc):
         mock_utc.utcnow.return_value = datetime(2017, 6, 22, 19, 1, 43)
-        expected = b'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<OAI-PMH xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.openarchives.org/OAI/2.0/" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"><responseDate>2017-06-22T19:01:43Z</responseDate><request verb="ListSets">https://oai.scielo.br/</request><ListSets><set><setSpec>foo</setSpec><setName>bar</setName></set></ListSets></OAI-PMH>'
+        expected = b'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<OAI-PMH xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.openarchives.org/OAI/2.0/" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"><responseDate>2017-06-22T19:01:43Z</responseDate><request verb="ListSets">https://oai.scielo.br/</request><ListSets><set><setSpec>foo</setSpec><setName>bar</setName></set><resumptionToken></resumptionToken></ListSets></OAI-PMH>'
         self.assertEqual(expected,
                 serializers.serialize_list_sets(self.data))
 

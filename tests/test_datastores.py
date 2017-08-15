@@ -43,6 +43,11 @@ class InMemoryTests(unittest.TestCase):
         self.assertEqual(sample_factories, retrieved_factories)
 
     def test_list_single_set(self):
+        def set1_view(f):
+            def viewfn():
+                return (res for res in f() if 'set1' in res.setspec)
+            return viewfn
+
         data = [{'ridentifier': 'rid'+str(i), 'setspec': ['set1']} 
                 for i in range(100)]
         data += [{'ridentifier': 'rid'+str(i), 'setspec': ['set2']} 
@@ -54,10 +59,15 @@ class InMemoryTests(unittest.TestCase):
         for resource in sample_factories:
             self.store.add(resource)
 
-        set1_factories = list(self.store.list(sets=['set1']))
+        set1_factories = list(self.store.list(view=set1_view))
         self.assertEqual(len(set1_factories), 100)
 
-    def test_list_two_sets(self):
+    def test_partial_list(self):
+        def set1_view(f):
+            def viewfn():
+                return (res for res in f() if 'set1' in res.setspec)
+            return viewfn
+
         data = [{'ridentifier': 'rid'+str(i), 'setspec': ['set1']} 
                 for i in range(100)]
         data += [{'ridentifier': 'rid'+str(i), 'setspec': ['set2']} 
@@ -69,25 +79,15 @@ class InMemoryTests(unittest.TestCase):
         for resource in sample_factories:
             self.store.add(resource)
 
-        set1_factories = list(self.store.list(sets=['set1', 'set2']))
-        self.assertEqual(len(set1_factories), 200)
-
-    def test_counted_list(self):
-        data = [{'ridentifier': 'rid'+str(i), 'setspec': ['set1']} 
-                for i in range(100)]
-        data += [{'ridentifier': 'rid'+str(i), 'setspec': ['set2']} 
-                 for i in range(100, 200)]
-
-        sample_factories = [factories.get_sample_resource(**d)
-                            for d in data]
-
-        for resource in sample_factories:
-            self.store.add(resource)
-
-        set1_factories = list(self.store.list(sets=['set1', 'set2'], count=10))
+        set1_factories = list(self.store.list(view=set1_view, count=10))
         self.assertEqual(len(set1_factories), 10)
 
     def test_offset_list(self):
+        def set1_view(f):
+            def viewfn():
+                return (res for res in f() if 'set1' in res.setspec)
+            return viewfn
+
         data = [{'ridentifier': 'rid'+str(i), 'setspec': ['set1']} 
                 for i in range(100)]
         data += [{'ridentifier': 'rid'+str(i), 'setspec': ['set2']} 
@@ -99,12 +99,12 @@ class InMemoryTests(unittest.TestCase):
         for resource in sample_factories:
             self.store.add(resource)
 
-        set1_factories = list(self.store.list(sets=['set1', 'set2'],
+        set1_factories = list(self.store.list(view=set1_view,
             offset=0, count=10))
-        set1_factories += list(self.store.list(sets=['set1', 'set2'],
+        set1_factories += list(self.store.list(view=set1_view,
             offset=10, count=10))
         
-        set2_factories = list(self.store.list(sets=['set1', 'set2'],
+        set2_factories = list(self.store.list(view=set1_view,
             offset=0, count=20))
         
         self.assertEqual(set1_factories, set2_factories)

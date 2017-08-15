@@ -7,6 +7,7 @@ from oaipmh import (
         repository,
         datastores,
         formatters,
+        sets,
         )
 
 
@@ -16,6 +17,12 @@ METADATA_FORMATS = [
             schema='http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
             metadataNamespace='http://www.openarchives.org/OAI/2.0/oai_dc/'),
          formatters.oai_dc.make_metadata),
+        ]
+
+
+STATIC_SETS = [
+        (sets.Set(setSpec='openaire', setName='OpenAIRE'),
+         datastores.identityview),
         ]
 
 
@@ -76,8 +83,10 @@ def get_repository_meta(settings):
 
 def add_oai_repository(event):
     settings = event.request.registry.settings
+    ds = get_datastore(settings)
+
     event.request.repository = repository.Repository(
-            settings['repository_meta'], get_datastore(settings))
+            settings['repository_meta'], ds, sets.SetsRegistry(ds, STATIC_SETS))
 
     for metadata, formatter in METADATA_FORMATS:
         event.request.repository.add_metadataformat(metadata, formatter)
