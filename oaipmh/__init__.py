@@ -8,6 +8,8 @@ from oaipmh import (
         datastores,
         formatters,
         sets,
+        utils,
+        articlemeta,
         )
 
 
@@ -36,7 +38,7 @@ DEFAULT_SETTINGS = [
         ('oaipmh.repo.adminemail', 'OAIPMH_REPO_ADMINEMAIL', str,
             'scielo@scielo.org'),
         ('oaipmh.repo.earliestdatestamp', 'OAIPMH_REPO_EARLIESTDATESTAMP',
-            datastores.parse_date, '1998-08-01'),
+            utils.parse_date, '1998-08-01'),
         ('oaipmh.repo.deletedrecord', 'OAIPMH_REPO_DELETEDRECORD', str,
             'no'),
         ('oaipmh.repo.granularity', 'OAIPMH_REPO_GRANULARITY', str,
@@ -65,8 +67,8 @@ def parse_settings(settings):
 
 
 def get_datastore(settings):
-    client = datastores.get_articlemeta_client(settings['oaipmh.collection'])
-    return datastores.ArticleMeta(client)
+    client = articlemeta.get_articlemeta_client(settings['oaipmh.collection'])
+    return articlemeta.ArticleMeta(client)
 
 
 def get_repository_meta(settings):

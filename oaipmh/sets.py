@@ -16,7 +16,7 @@ Deve ser possível:
 import itertools
 from collections import OrderedDict
 
-from .datastores import ArticleMetaFilteredView
+from .articlemeta import ArticleMetaFilteredView
 from .entities import Set
 
 
