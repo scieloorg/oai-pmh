@@ -13,13 +13,11 @@ Deve ser possível:
   * Consultar os registros contidos em um conjunto;
   
 """
-from collections import namedtuple, OrderedDict
 import itertools
+from collections import OrderedDict
 
 from .datastores import ArticleMetaFilteredView
-
-
-Set = namedtuple('Set', '''setSpec setName''')
+from .entities import Set
 
 
 class SetsRegistry:

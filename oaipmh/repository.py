@@ -2,27 +2,19 @@ import re
 import functools
 import operator
 from typing import Iterable
-from collections import namedtuple
 
-from oaipmh import serializers, datastores, sets
-from oaipmh.formatters import oai_dc
-
-
-RepositoryMeta = namedtuple('RepositoryMeta', '''repositoryName baseURL
-        protocolVersion adminEmail earliestDatestamp deletedRecord
-        granularity''')
-
-
-OAIRequest = namedtuple('OAIRequest', '''verb identifier metadataPrefix set
-        resumptionToken from_ until''')
-
-
-MetadataFormat = namedtuple('MetadataFormat', '''metadataPrefix schema
-        metadataNamespace''')
-
-
-ResumptionToken = namedtuple('ResumptionToken', '''set from_ until offset count
-        metadataPrefix''')
+from .formatters import oai_dc
+from . import (
+        serializers,
+        datastores,
+        sets,
+        )
+from .entities import (
+        RepositoryMeta,
+        OAIRequest,
+        MetadataFormat,
+        ResumptionToken,
+        )
 
 
 RESUMPTION_TOKEN_PATTERNS = {

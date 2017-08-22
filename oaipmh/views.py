@@ -2,7 +2,7 @@ from pyramid.view import view_config
 from pyramid.response import Response
 from pyramid import httpexceptions
 
-from oaipmh import repository
+from oaipmh import repository, entities
 
 
 def xml_response(body):
@@ -10,7 +10,7 @@ def xml_response(body):
 
 
 def oairequest_from_http(request):
-    oairequest = repository.OAIRequest(
+    oairequest = entities.OAIRequest(
             verb=request.params.get('verb'),
             identifier=request.params.get('identifier'),
             metadataPrefix=request.params.get('metadataPrefix'),
