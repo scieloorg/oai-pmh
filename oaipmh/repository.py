@@ -20,7 +20,7 @@ from .entities import (
 RESUMPTION_TOKEN_PATTERNS = {
         'ListRecords': re.compile(r'^(\w+)?:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:\w+$'),
         'ListIdentifiers': re.compile(r'^(\w+)?:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:$'),
-        'ListSets': re.compile(r'^(\w+)?:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:$'),
+        'ListSets': re.compile(r'^:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:$'),
         }
 
 
@@ -339,16 +339,27 @@ class Repository:
 
 def get_resumption_token_from_request(oairequest: OAIRequest,
         default_count: int) -> ResumptionToken:
+    """Obtém um ``ResumptionToken`` à partir do ``oairequest``.
+
+    Caso o token não seja válido sintaticamente ou o valor do atributo ``count``
+    exceda o dobro de ``default_count``, levanta a exceção ``BadResumptionToken``;
+    Retorna um novo ``ResumptionToken`` caso não haja um codificado no
+    ``oairequest``.
+    """
     if oairequest.resumptionToken:
         pattern = RESUMPTION_TOKEN_PATTERNS[oairequest.verb]
         if not is_valid_resumption_token(oairequest.resumptionToken, pattern):
             raise BadResumptionTokenError()
 
-        return decode_resumption_token(oairequest.resumptionToken)
+        token = decode_resumption_token(oairequest.resumptionToken)
+        if int(token.count) > (default_count * 2):
+            raise BadResumptionTokenError('token count exceeds ``oaipmh.listslen * 2``')
     else:
-        return ResumptionToken(set=oairequest.set, from_=oairequest.from_,
+        token = ResumptionToken(set=oairequest.set, from_=oairequest.from_,
                 until=oairequest.until, offset='0', count=default_count,
                 metadataPrefix=oairequest.metadataPrefix)
+
+    return token
 
 
 def encode_resumption_token(token: ResumptionToken) -> str:
