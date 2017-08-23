@@ -242,10 +242,11 @@ def check_incomplete_sets_list(detected_args):
 
 class Repository:
     def __init__(self, metadata: RepositoryMeta, ds: datastores.DataStore,
-            setsreg: sets.SetsRegistry):
+            setsreg: sets.SetsRegistry, listslen: int):
         self.metadata = metadata
         self.ds = ds
         self.setsreg = setsreg
+        self.listslen = listslen
         self.formats = {}
         self.verbs = {
                 'Identify': self._identify,
@@ -297,9 +298,8 @@ class Repository:
         if view is None:
             raise SetNameError('Cannot find a view for set "%s"', token.set)
 
-        resources = self.ds.list(view=view, _from=token.from_,
-                until=token.until, offset=int(token.offset),
-                count=int(token.count))
+        resources = self.ds.list(int(token.offset), int(token.count),
+                view=view, _from=token.from_, until=token.until)
         return resources
 
     @check_request_args(check_incomplete_records_list)
@@ -308,7 +308,7 @@ class Repository:
             if oairequest.metadataPrefix not in self.formats:
                 return serialize_cannot_disseminate_format(self.metadata, oairequest)
 
-        token = get_resumption_token_from_request(oairequest)
+        token = get_resumption_token_from_request(oairequest, self.listslen)
         formatter = self.formats[token.metadataPrefix]['formatter']
         resources = list(self._filter_records(token))
         next_token = next_resumption_token(token, resources)
@@ -317,7 +317,7 @@ class Repository:
 
     @check_request_args(check_incomplete_identifiers_list)
     def _list_identifiers(self, oairequest):
-        token = get_resumption_token_from_request(oairequest)
+        token = get_resumption_token_from_request(oairequest, self.listslen)
         resources = list(self._filter_records(token))
         next_token = next_resumption_token(token, resources)
         return serialize_list_identifiers(self.metadata, oairequest, resources,
@@ -330,14 +330,15 @@ class Repository:
 
     @check_request_args(check_incomplete_sets_list)
     def _list_sets(self, oairequest):
-        token = get_resumption_token_from_request(oairequest)
+        token = get_resumption_token_from_request(oairequest, self.listslen)
         sets_list = list(self.setsreg.list(int(token.offset), int(token.count)))
         next_token = next_resumption_token(token, sets_list)
         return serialize_list_sets(self.metadata, oairequest, sets_list,
                 next_token)
 
 
-def get_resumption_token_from_request(oairequest: OAIRequest) -> ResumptionToken:
+def get_resumption_token_from_request(oairequest: OAIRequest,
+        default_count: int) -> ResumptionToken:
     if oairequest.resumptionToken:
         pattern = RESUMPTION_TOKEN_PATTERNS[oairequest.verb]
         if not is_valid_resumption_token(oairequest.resumptionToken, pattern):
@@ -346,7 +347,7 @@ def get_resumption_token_from_request(oairequest: OAIRequest) -> ResumptionToken
         return decode_resumption_token(oairequest.resumptionToken)
     else:
         return ResumptionToken(set=oairequest.set, from_=oairequest.from_,
-                until=oairequest.until, offset='0', count='100',
+                until=oairequest.until, offset='0', count=default_count,
                 metadataPrefix=oairequest.metadataPrefix)
 
 

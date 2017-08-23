@@ -38,7 +38,7 @@ class InMemoryTests(unittest.TestCase):
         for resource in sample_factories:
             self.store.add(resource)
 
-        retrieved_factories = list(self.store.list())
+        retrieved_factories = list(self.store.list(0, 1000))
         self.assertEqual(sample_factories, retrieved_factories)
 
     def test_list_single_set(self):
@@ -58,7 +58,7 @@ class InMemoryTests(unittest.TestCase):
         for resource in sample_factories:
             self.store.add(resource)
 
-        set1_factories = list(self.store.list(view=set1_view))
+        set1_factories = list(self.store.list(0, 1000, view=set1_view))
         self.assertEqual(len(set1_factories), 100)
 
     def test_partial_list(self):
@@ -78,7 +78,7 @@ class InMemoryTests(unittest.TestCase):
         for resource in sample_factories:
             self.store.add(resource)
 
-        set1_factories = list(self.store.list(view=set1_view, count=10))
+        set1_factories = list(self.store.list(0, 10, view=set1_view))
         self.assertEqual(len(set1_factories), 10)
 
     def test_offset_list(self):
@@ -118,7 +118,7 @@ class InMemoryTests(unittest.TestCase):
         for resource in sample_factories:
             self.store.add(resource)
 
-        set_factories = list(self.store.list(_from='2017-06-05'))
+        set_factories = list(self.store.list(0, 1000, _from='2017-06-05'))
         self.assertEqual(len(set_factories), 5)
 
     def test_until_datestamp(self):
@@ -131,7 +131,7 @@ class InMemoryTests(unittest.TestCase):
         for resource in sample_factories:
             self.store.add(resource)
 
-        set_factories = list(self.store.list(until='2017-06-05'))
+        set_factories = list(self.store.list(0, 1000, until='2017-06-05'))
         self.assertEqual(len(set_factories), 5)
 
 

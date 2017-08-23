@@ -289,7 +289,7 @@ class ArticleMeta(DataStore):
             raise DoesNotExistError()
         return ArticleResourceFacade(doc).to_resource()
 
-    def list(self, view=None, offset=0, count=1000, _from=None, until=None):
+    def list(self, offset, count, view=None, _from=None, until=None):
         view_fn = view or identityview
         query_fn = view_fn(self.client.documents)
 

@@ -42,7 +42,7 @@ class DataStore(metaclass=abc.ABCMeta):
         return NotImplemented
 
     @abc.abstractmethod
-    def list(self, view: Callable=None, offset: int=0, count: int=1000,
+    def list(self, offset: int, count: int, view: Callable=None, 
             _from: str=None, until: str=None) -> Iterable[Resource]:
         """Produz uma coleção de objetos ``Resource``.
 
@@ -72,7 +72,7 @@ class InMemory(DataStore):
         except KeyError:
             raise DoesNotExistError() from None
 
-    def list(self, view=None, offset=0, count=1000, _from=None, until=None):
+    def list(self, offset, count, view=None, _from=None, until=None):
         ds2tup = datestamp_to_tuple
         view_fn = view or identityview
         query_fn = view_fn(self.data.values)

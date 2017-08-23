@@ -45,6 +45,8 @@ DEFAULT_SETTINGS = [
             'YYYY-MM-DD'),
         ('oaipmh.collection', 'OAIPMH_COLLECTION', str,
             'scl'),
+        ('oaipmh.listslen', 'OAIPMH_LISTSLEN', int,
+            20),
         ]
 
 
@@ -88,7 +90,8 @@ def add_oai_repository(event):
     ds = get_datastore(settings)
 
     event.request.repository = repository.Repository(
-            settings['repository_meta'], ds, sets.SetsRegistry(ds, STATIC_SETS))
+            settings['repository_meta'], ds, sets.SetsRegistry(ds, STATIC_SETS),
+            settings['oaipmh.listslen'])
 
     for metadata, formatter in METADATA_FORMATS:
         event.request.repository.add_metadataformat(metadata, formatter)
