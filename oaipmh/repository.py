@@ -342,7 +342,7 @@ def get_resumption_token_from_request(oairequest: OAIRequest,
     """Obtém um ``ResumptionToken`` à partir do ``oairequest``.
 
     Caso o token não seja válido sintaticamente ou o valor do atributo ``count``
-    exceda o dobro de ``default_count``, levanta a exceção ``BadResumptionToken``;
+    seja diferente de ``default_count``, levanta a exceção ``BadResumptionToken``;
     Retorna um novo ``ResumptionToken`` caso não haja um codificado no
     ``oairequest``.
     """
@@ -352,8 +352,8 @@ def get_resumption_token_from_request(oairequest: OAIRequest,
             raise BadResumptionTokenError()
 
         token = decode_resumption_token(oairequest.resumptionToken)
-        if int(token.count) > (default_count * 2):
-            raise BadResumptionTokenError('token count exceeds ``oaipmh.listslen * 2``')
+        if int(token.count) != default_count:
+            raise BadResumptionTokenError('token count is different than ``oaipmh.listslen``')
     else:
         token = ResumptionToken(set=oairequest.set, from_=oairequest.from_,
                 until=oairequest.until, offset='0', count=default_count,
