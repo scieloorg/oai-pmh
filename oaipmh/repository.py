@@ -199,7 +199,7 @@ class check_request_args:
 
     def __call__(self, f):
         def wrapper(*args):
-            _, oaireq = args  # opera apenas em instâncias de Repository
+            _, oaireq = args
             detected_args = [k for k, v in asdict(oaireq).items() if v]
             if self.checking_func(detected_args):
                 return f(*args)
@@ -208,11 +208,11 @@ class check_request_args:
         return wrapper
 
 
-def is_equal(expected_args, detected_args):
-    return set(expected_args) == set(detected_args)
+def are_equal(expected_args, detected_args):
+    return sorted(expected_args) == sorted(detected_args)
 
 
-def check_incomplete_records_list(detected_args):
+def check_listrecords_args(detected_args):
     args = set(detected_args)
     if 'verb' not in args:
         return False
@@ -224,7 +224,19 @@ def check_incomplete_records_list(detected_args):
         return 'metadataPrefix' in args
 
 
-def check_incomplete_identifiers_list(detected_args):
+def check_listidentifiers_args(detected_args):
+    args = set(detected_args)
+    if 'verb' not in args:
+        return False
+
+    if 'resumptionToken' in args:
+        return not any((operator.contains(args, arg)
+                        for arg in ['from', 'until', 'set', 'metadataPrefix']))
+    else:
+        return 'metadataPrefix' not in args
+
+
+def check_listsets_args(detected_args):
     args = set(detected_args)
     if 'verb' not in args:
         return False
@@ -233,16 +245,7 @@ def check_incomplete_identifiers_list(detected_args):
         return not any((operator.contains(args, arg)
                         for arg in ['from', 'until', 'set']))
     else:
-        return True
-
-
-def check_incomplete_sets_list(detected_args):
-    args = set(detected_args)
-    if 'verb' not in args:
-        return False
-    else:
-        return not any((operator.contains(args, arg)
-                        for arg in ['from', 'until', 'set']))
+        return 'metadataPrefix' not in args
 
 
 def get_or_default(mapping, key, default=None):
@@ -270,7 +273,7 @@ def has_repeated_args(parsed_qstr):
 
 
 def oairequest_from_querystring(parsed_qstr):
-    oairequest = OAIRequest(
+    return OAIRequest(
             verb=get_or_default(parsed_qstr, 'verb'),
             identifier=get_or_default(parsed_qstr, 'identifier'),
             metadataPrefix=get_or_default(parsed_qstr, 'metadataPrefix'),
@@ -279,7 +282,6 @@ def oairequest_from_querystring(parsed_qstr):
             from_=get_or_default(parsed_qstr, 'from'),
             until=get_or_default(parsed_qstr, 'until'),
             )
-    return oairequest
 
 
 class Repository:
@@ -291,12 +293,12 @@ class Repository:
         self.listslen = listslen
         self.formats = {}
         self.verbs = {
-                'Identify': self._identify,
-                'GetRecord': self._get_record,
-                'ListRecords': self._list_records,
-                'ListIdentifiers': self._list_identifiers,
-                'ListMetadataFormats': self._list_metadata_formats,
-                'ListSets': self._list_sets,
+                'Identify': self.identify,
+                'GetRecord': self.get_record,
+                'ListRecords': self.list_records,
+                'ListIdentifiers': self.list_identifiers,
+                'ListMetadataFormats': self.list_metadata_formats,
+                'ListSets': self.list_sets,
                 }
 
     def add_metadataformat(self, metadata: MetadataFormat, formatter):
@@ -305,7 +307,7 @@ class Repository:
                 'formatter': formatter,
                 }
 
-    def handle_request(self, qstr):
+    def handle_request(self, qstr: str):
         """Trata a requisição ``qstr`` codificada como querystring.
         """
         parsed_qstr = urllib.parse.parse_qs(qstr)
@@ -328,13 +330,13 @@ class Repository:
         except BadResumptionTokenError:
             return serialize_bad_resumption_token(self.metadata, oairequest)
 
-    @check_request_args(functools.partial(is_equal, ['verb']))
-    def _identify(self, oairequest):
+    @check_request_args(functools.partial(are_equal, ['verb']))
+    def identify(self, oairequest: OAIRequest) -> bytes:
         return serialize_identify(self.metadata, oairequest)
 
-    @check_request_args(functools.partial(is_equal, 
+    @check_request_args(functools.partial(are_equal, 
         ['verb', 'metadataPrefix', 'identifier']))
-    def _get_record(self, oairequest):
+    def get_record(self, oairequest: OAIRequest) -> bytes:
         if oairequest.metadataPrefix not in self.formats:
             return serialize_cannot_disseminate_format(self.metadata, oairequest)
 
@@ -352,8 +354,8 @@ class Repository:
                 view=view, _from=token.from_, until=token.until)
         return resources
 
-    @check_request_args(check_incomplete_records_list)
-    def _list_records(self, oairequest):
+    @check_request_args(check_listrecords_args)
+    def list_records(self, oairequest: OAIRequest) -> bytes:
         if not oairequest.resumptionToken:
             if oairequest.metadataPrefix not in self.formats:
                 return serialize_cannot_disseminate_format(self.metadata, oairequest)
@@ -365,21 +367,21 @@ class Repository:
         return serialize_list_records(self.metadata, oairequest, resources,
                 next_token, metadata_formatter=formatter)
 
-    @check_request_args(check_incomplete_identifiers_list)
-    def _list_identifiers(self, oairequest):
+    @check_request_args(check_listidentifiers_args)
+    def list_identifiers(self, oairequest: OAIRequest) -> bytes:
         token = get_resumption_token_from_request(oairequest, self.listslen)
         resources = list(self._filter_records(token))
         next_token = next_resumption_token(token, resources)
         return serialize_list_identifiers(self.metadata, oairequest, resources,
                 next_token)
 
-    @check_request_args(functools.partial(is_equal, ['verb']))
-    def _list_metadata_formats(self, oairequest):
+    @check_request_args(functools.partial(are_equal, ['verb']))
+    def list_metadata_formats(self, oairequest: OAIRequest) -> bytes:
         fmts = [fmt['metadata'] for fmt in self.formats.values()]
         return serialize_list_metadata_formats(self.metadata, oairequest, fmts)
 
-    @check_request_args(check_incomplete_sets_list)
-    def _list_sets(self, oairequest):
+    @check_request_args(check_listsets_args)
+    def list_sets(self, oairequest: OAIRequest) -> bytes:
         token = get_resumption_token_from_request(oairequest, self.listslen)
         sets_list = list(self.setsreg.list(int(token.offset), int(token.count)))
         next_token = next_resumption_token(token, sets_list)

@@ -740,3 +740,213 @@ class oairequest_from_querystringTests(unittest.TestCase):
         self.assertEqual(oairequest.from_, None)
         self.assertEqual(oairequest.until, '2017-01-01')
 
+
+class are_equalTests(unittest.TestCase):
+    def test_equal_seqs(self):
+        self.assertTrue(repository.are_equal(['foo', 'bar', 'blah'],
+            ['foo', 'bar', 'blah']))
+
+    def test_equal_but_unsorted_seqs(self):
+        self.assertTrue(repository.are_equal(['blah', 'bar', 'foo'],
+            ['foo', 'bar', 'blah']))
+
+    def test_unequal_seqs(self):
+        self.assertFalse(repository.are_equal(['foo', 'bar', 'blah'],
+            ['zap', 'blah', 'foo']))
+
+    def test_seqs_with_different_lengths(self):
+        self.assertFalse(repository.are_equal(['foo', 'bar', 'blah'],
+            ['zap', 'blah']))
+
+
+class check_listrecords_argsTests(unittest.TestCase):
+    def test_verb_is_missing(self):
+        self.assertFalse(repository.check_listrecords_args([]))
+
+    def test_verb_nand_resumptiontoken_and_metadataprefix(self):
+        self.assertTrue(repository.check_listrecords_args(
+            ['verb', 'metadataPrefix']))
+
+    def test_verb_nand_resumptiontoken_nand_metadataprefix(self):
+        self.assertFalse(repository.check_listrecords_args(['verb']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case1(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'from', 'until', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case2(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'from', 'until', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case3(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'from', 'until', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case4(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'from', 'until']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case5(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'from', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case6(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'from', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case7(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'from', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case8(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'from']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case9(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'until', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case10(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'until', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case11(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'until', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case12(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'until']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case13(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case14(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case15(self):
+        self.assertFalse(repository.check_listrecords_args(
+            ['verb', 'resumptionToken', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_nand_anyfilter(self):
+        self.assertTrue(repository.check_listrecords_args(
+            ['verb', 'resumptionToken']))
+
+
+class check_listidentifiers_argsTests(unittest.TestCase):
+    def test_verb_is_missing(self):
+        self.assertFalse(repository.check_listidentifiers_args([]))
+
+    def test_verb_nand_resumptiontoken_and_metadataprefix(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'metadataPrefix']))
+
+    def test_verb_nand_resumptiontoken_nand_metadataprefix(self):
+        self.assertTrue(repository.check_listidentifiers_args(['verb']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case1(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'from', 'until', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case2(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'from', 'until', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case3(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'from', 'until', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case4(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'from', 'until']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case5(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'from', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case6(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'from', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case7(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'from', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case8(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'from']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case9(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'until', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case10(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'until', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case11(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'until', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case12(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'until']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case13(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case14(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case15(self):
+        self.assertFalse(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_nand_anyfilter(self):
+        self.assertTrue(repository.check_listidentifiers_args(
+            ['verb', 'resumptionToken']))
+
+
+class check_listsets_argsTests(unittest.TestCase):
+    def test_verb_is_missing(self):
+        self.assertFalse(repository.check_listsets_args([]))
+
+    def test_verb_nand_resumptiontoken_and_metadataprefix(self):
+        self.assertFalse(repository.check_listsets_args(
+            ['verb', 'metadataPrefix']))
+
+    def test_verb_nand_resumptiontoken_nand_metadataprefix(self):
+        self.assertTrue(repository.check_listsets_args(['verb']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case1(self):
+        self.assertFalse(repository.check_listsets_args(
+        ['verb', 'resumptionToken', 'from', 'until', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case2(self):
+        self.assertFalse(repository.check_listsets_args(
+        ['verb', 'resumptionToken', 'from', 'until']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case3(self):
+        self.assertFalse(repository.check_listsets_args(
+        ['verb', 'resumptionToken', 'from', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case4(self):
+        self.assertFalse(repository.check_listsets_args(
+        ['verb', 'resumptionToken', 'from']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case5(self):
+        self.assertFalse(repository.check_listsets_args(
+        ['verb', 'resumptionToken', 'until', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case6(self):
+        self.assertFalse(repository.check_listsets_args(
+        ['verb', 'resumptionToken', 'until']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case7(self):
+        self.assertFalse(repository.check_listsets_args(
+        ['verb', 'resumptionToken', 'set']))
+
