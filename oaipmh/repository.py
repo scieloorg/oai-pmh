@@ -2,6 +2,7 @@ import re
 import functools
 import operator
 from typing import Iterable
+import urllib.parse
 
 from .formatters import oai_dc
 from . import (
@@ -22,6 +23,10 @@ RESUMPTION_TOKEN_PATTERNS = {
         'ListIdentifiers': re.compile(r'^(\w+)?:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:$'),
         'ListSets': re.compile(r'^:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:$'),
         }
+
+
+OAIPMH_LEGAL_ARGS = set(['verb', 'identifier', 'metadataPrefix', 'set',
+            'resumptionToken', 'from', 'until'])
 
 
 def asdict(namedtupl):
@@ -240,6 +245,43 @@ def check_incomplete_sets_list(detected_args):
                         for arg in ['from', 'until', 'set']))
 
 
+def get_or_default(mapping, key, default=None):
+    """Retorna o valor do índice 0 de ``mapping[key]`` ou ``default``.
+    """
+    try:
+        values = mapping[key]
+    except KeyError:
+        return default
+    return values[0]
+
+
+def has_illegal_args(parsed_qstr, legal_args=OAIPMH_LEGAL_ARGS):
+    for arg in parsed_qstr.keys():
+        if arg not in legal_args:
+            return True
+    return False
+
+
+def has_repeated_args(parsed_qstr):
+    for value in parsed_qstr.values():
+        if len(value) > 1:
+            return True
+    return False
+
+
+def oairequest_from_querystring(parsed_qstr):
+    oairequest = OAIRequest(
+            verb=get_or_default(parsed_qstr, 'verb'),
+            identifier=get_or_default(parsed_qstr, 'identifier'),
+            metadataPrefix=get_or_default(parsed_qstr, 'metadataPrefix'),
+            set=get_or_default(parsed_qstr, 'set'),
+            resumptionToken=get_or_default(parsed_qstr, 'resumptionToken'),
+            from_=get_or_default(parsed_qstr, 'from'),
+            until=get_or_default(parsed_qstr, 'until'),
+            )
+    return oairequest
+
+
 class Repository:
     def __init__(self, metadata: RepositoryMeta, ds: datastores.DataStore,
             setsreg: sets.SetsRegistry, listslen: int):
@@ -263,7 +305,15 @@ class Repository:
                 'formatter': formatter,
                 }
 
-    def handle_request(self, oairequest):
+    def handle_request(self, qstr):
+        """Trata a requisição ``qstr`` codificada como querystring.
+        """
+        parsed_qstr = urllib.parse.parse_qs(qstr)
+        oairequest = oairequest_from_querystring(parsed_qstr)
+
+        if has_illegal_args(parsed_qstr) or has_repeated_args(parsed_qstr):
+            return serialize_bad_argument(self.metadata, oairequest)
+
         try:
             verb = self.verbs[oairequest.verb]
         except KeyError:

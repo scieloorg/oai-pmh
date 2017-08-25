@@ -59,9 +59,8 @@ def datestamp_to_tuple(datestamp):
 
 
 class InMemory(DataStore):
-    def __init__(self, views: Dict[str, Callable]=None):
+    def __init__(self):
         self.data = {}
-        self.views = dict(views) if views else {}
 
     def add(self, resource):
         self.data[resource.ridentifier] = resource

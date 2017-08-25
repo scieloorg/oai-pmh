@@ -1,8 +1,15 @@
 import re
 import unittest
 from collections import namedtuple
+import urllib.parse
 
-from oaipmh import repository
+from .fixtures import factories
+from oaipmh import (
+        repository,
+        datastores,
+        sets,
+        entities,
+        )
 
 
 RES_TOKEN_RECORDS = repository.RESUMPTION_TOKEN_PATTERNS['ListRecords']
@@ -630,4 +637,106 @@ class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
     def test_case_64(self):
         token = ':::::'
         self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+
+
+class RepositoryTests(unittest.TestCase):
+    def setUp(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        self.repository = repository.Repository(meta, ds, setsreg, 10)
+
+    def test_handling_req_with_illegal_args(self):
+        req = 'verb=Identify&illegalarg=foo'
+        result = self.repository.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+
+    def test_handling_req_with_repeated_args(self):
+        req = 'verb=Identify&verb=Identify'
+        result = self.repository.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+
+    def test_handling_req_to_invalid_verb(self):
+        req = 'verb=InvalidVerb'
+        result = self.repository.handle_request(req)
+        self.assertTrue('<error code="badVerb">'.encode('utf-8') in result)
+
+
+class oairequest_from_querystringTests(unittest.TestCase):
+    def test_verb(self):
+        qstr = urllib.parse.parse_qs('verb=ListRecords')
+        oairequest = repository.oairequest_from_querystring(qstr)
+        self.assertEqual(oairequest.verb, 'ListRecords')
+        self.assertEqual(oairequest.identifier, None)
+        self.assertEqual(oairequest.metadataPrefix, None)
+        self.assertEqual(oairequest.set, None)
+        self.assertEqual(oairequest.resumptionToken, None)
+        self.assertEqual(oairequest.from_, None)
+        self.assertEqual(oairequest.until, None)
+
+    def test_identifier(self):
+        qstr = urllib.parse.parse_qs('identifier=foo')
+        oairequest = repository.oairequest_from_querystring(qstr)
+        self.assertEqual(oairequest.verb, None)
+        self.assertEqual(oairequest.identifier, 'foo')
+        self.assertEqual(oairequest.metadataPrefix, None)
+        self.assertEqual(oairequest.set, None)
+        self.assertEqual(oairequest.resumptionToken, None)
+        self.assertEqual(oairequest.from_, None)
+        self.assertEqual(oairequest.until, None)
+
+    def test_metadataprefix(self):
+        qstr = urllib.parse.parse_qs('metadataPrefix=foo')
+        oairequest = repository.oairequest_from_querystring(qstr)
+        self.assertEqual(oairequest.verb, None)
+        self.assertEqual(oairequest.identifier, None)
+        self.assertEqual(oairequest.metadataPrefix, 'foo')
+        self.assertEqual(oairequest.set, None)
+        self.assertEqual(oairequest.resumptionToken, None)
+        self.assertEqual(oairequest.from_, None)
+        self.assertEqual(oairequest.until, None)
+
+    def test_set(self):
+        qstr = urllib.parse.parse_qs('set=foo')
+        oairequest = repository.oairequest_from_querystring(qstr)
+        self.assertEqual(oairequest.verb, None)
+        self.assertEqual(oairequest.identifier, None)
+        self.assertEqual(oairequest.metadataPrefix, None)
+        self.assertEqual(oairequest.set, 'foo')
+        self.assertEqual(oairequest.resumptionToken, None)
+        self.assertEqual(oairequest.from_, None)
+        self.assertEqual(oairequest.until, None)
+
+    def test_resumptiontoken(self):
+        qstr = urllib.parse.parse_qs('resumptionToken=foo')
+        oairequest = repository.oairequest_from_querystring(qstr)
+        self.assertEqual(oairequest.verb, None)
+        self.assertEqual(oairequest.identifier, None)
+        self.assertEqual(oairequest.metadataPrefix, None)
+        self.assertEqual(oairequest.set, None)
+        self.assertEqual(oairequest.resumptionToken, 'foo')
+        self.assertEqual(oairequest.from_, None)
+        self.assertEqual(oairequest.until, None)
+
+    def test_from(self):
+        qstr = urllib.parse.parse_qs('from=2017-01-01')
+        oairequest = repository.oairequest_from_querystring(qstr)
+        self.assertEqual(oairequest.verb, None)
+        self.assertEqual(oairequest.identifier, None)
+        self.assertEqual(oairequest.metadataPrefix, None)
+        self.assertEqual(oairequest.set, None)
+        self.assertEqual(oairequest.resumptionToken, None)
+        self.assertEqual(oairequest.from_, '2017-01-01')
+        self.assertEqual(oairequest.until, None)
+
+    def test_until(self):
+        qstr = urllib.parse.parse_qs('until=2017-01-01')
+        oairequest = repository.oairequest_from_querystring(qstr)
+        self.assertEqual(oairequest.verb, None)
+        self.assertEqual(oairequest.identifier, None)
+        self.assertEqual(oairequest.metadataPrefix, None)
+        self.assertEqual(oairequest.set, None)
+        self.assertEqual(oairequest.resumptionToken, None)
+        self.assertEqual(oairequest.from_, None)
+        self.assertEqual(oairequest.until, '2017-01-01')
 
