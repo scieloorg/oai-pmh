@@ -22,7 +22,7 @@ TESTS_REQUIRE = []
 
 
 setup(
-    name="oai-pmh",
+    name="scielo.oaiprovider",
     version="0.1",
     description="OAI-PMH Repository",
     long_description=codecs.open('README.rst', mode='r', encoding='utf-8').read() + '\n\n' +
