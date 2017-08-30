@@ -14,7 +14,8 @@ def get_article_fixture():
     from xylose.scielodocument import Article
 
     raw_article_path = os.path.join(FIXTURES_DIR, 'article_type3.json')
-    raw_article = json.load(open(raw_article_path))
+    with open(raw_article_path) as f:
+        raw_article = json.load(f)
     article = Article(raw_article)
     return article
 

@@ -6,6 +6,7 @@ from pyramid.registry import Registry
 from lxml import etree
 
 from oaipmh import serializers
+from oaipmh.formatters import oai_dc
 
 
 class RootTests(unittest.TestCase):
@@ -265,48 +266,54 @@ class ListSetsTests(unittest.TestCase):
 
 class TestRecordPipe(unittest.TestCase):
 
-    @unittest.skip('melhorar a estratégia de comparação')
+    def setUp(self):
+        self.formatter = oai_dc.make_metadata
+
     def test_record_pipe_add_record_node(self):
         data = {
-            'datestamp': datetime(2014, 2, 19, 13, 5, 0),
-            'title': 'title',
-            'creators': {
-                'collaborator': [['collaborator', None]],
-                'organizer': [['organizer', None]]
-            },
-            'description': 'description',
-            'publisher': 'publisher',
-            'date': '2014',
-            'formats': ['pdf', 'epub'],
-            'identifier': 'identifier',
-            'language': 'pt'
-        }
+                'ridentifier': 'S0001-37652000000200015',
+                'datestamp': datetime(2000, 8, 7, 0, 0),
+                'setspec': ['0001-3765'],
+                'title': [('en', 'Hydrogeology of Brasília (DF) Sobradinho river basin')],
+                'creator': ['Zoby, José Luiz G.', 'Duarte, Uriel'],
+                'subject': [],
+                'description': [('en', None)],
+                'publisher': ['Academia Brasileira de Ciências'],
+                'contributor': [],
+                'date': [datetime(2000, 6, 1, 0, 0)],
+                'type': ['abstract'],
+                'format': ['text/html'],
+                'identifier': ['http://www.scielo.br/scielo.php?script=sci_arttext&pid=S0001-37652000000200015&lng=en&tlng=en'],
+                'source': ['An. Acad. Bras. Ciênc. vol.72 n.2 Rio de Janeiro June 2000'],
+                'language': ['en'],
+                'relation': [],
+                'rights': ['http://creativecommons.org/licenses/by-nc/4.0/']
+                }
 
-        xml = serializers.record(data)
+        xml = serializers.make_record(data, self.formatter)
 
         xml_str = '<record>'
         xml_str += '<header>'
-        xml_str += '<identifier>identifier</identifier>'
-        xml_str += '<datestamp>2014-02-19</datestamp>'
-        xml_str += '<setSpec>publisher</setSpec>'
+        xml_str += '<identifier>S0001-37652000000200015</identifier>'
+        xml_str += '<datestamp>2000-08-07</datestamp>'
+        xml_str += '<setSpec>0001-3765</setSpec>'
         xml_str += '</header>'
         xml_str += '<metadata>'
-        xml_str += '<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"'
+        xml_str += '<oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/"'
+        xml_str += ' xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"'
         xml_str += ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-        xml_str += ' xmlns:dc="http://purl.org/dc/elements/1.1/"'
         xml_str += ' xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/'
         xml_str += ' http://www.openarchives.org/OAI/2.0/oai_dc.xsd">'
-        xml_str += '<dc:title>title</dc:title>'
-        xml_str += '<dc:creator>organizer</dc:creator>'
-        xml_str += '<dc:contributor>collaborator</dc:contributor>'
-        xml_str += '<dc:description>description</dc:description>'
-        xml_str += '<dc:publisher>publisher</dc:publisher>'
-        xml_str += '<dc:date>2014</dc:date>'
-        xml_str += '<dc:type>book</dc:type>'
-        xml_str += '<dc:format>pdf</dc:format>'
-        xml_str += '<dc:format>epub</dc:format>'
-        xml_str += '<dc:identifier>http://books.scielo.org/id/identifier</dc:identifier>'
-        xml_str += '<dc:language>pt</dc:language>'
+        xml_str += '<dc:title>Hydrogeology of Bras&#237;lia (DF) Sobradinho river basin</dc:title>'
+        xml_str += '<dc:creator>Zoby, Jos&#233; Luiz G.</dc:creator>'
+        xml_str += '<dc:creator>Duarte, Uriel</dc:creator>'
+        xml_str += '<dc:description/>'
+        xml_str += '<dc:publisher>Academia Brasileira de Ci&#234;ncias</dc:publisher>'
+        xml_str += '<dc:date>2000-06-01</dc:date>'
+        xml_str += '<dc:type>abstract</dc:type>'
+        xml_str += '<dc:format>text/html</dc:format>'
+        xml_str += '<dc:identifier>http://www.scielo.br/scielo.php?script=sci_arttext&amp;pid=S0001-37652000000200015&amp;lng=en&amp;tlng=en</dc:identifier>'
+        xml_str += '<dc:language>en</dc:language>'
         xml_str += '</oai_dc:dc>'
         xml_str += '</metadata>'
         xml_str += '</record>'
