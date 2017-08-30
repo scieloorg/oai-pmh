@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import patch
 from datetime import datetime
 
-from pyramid.registry import Registry
 from lxml import etree
 
 from oaipmh import serializers
@@ -264,12 +263,9 @@ class ListSetsTests(unittest.TestCase):
         self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
 
 
-class TestRecordPipe(unittest.TestCase):
+class RecordMakerTests(unittest.TestCase):
 
-    def setUp(self):
-        self.formatter = oai_dc.make_metadata
-
-    def test_record_pipe_add_record_node(self):
+    def test_serialize_resource_into_record(self):
         data = {
                 'ridentifier': 'S0001-37652000000200015',
                 'datestamp': datetime(2000, 8, 7, 0, 0),
@@ -290,192 +286,9 @@ class TestRecordPipe(unittest.TestCase):
                 'rights': ['http://creativecommons.org/licenses/by-nc/4.0/']
                 }
 
-        xml = serializers.make_record(data, self.formatter)
+        xml = serializers.make_record(data, oai_dc.make_metadata)
 
-        xml_str = '<record>'
-        xml_str += '<header>'
-        xml_str += '<identifier>S0001-37652000000200015</identifier>'
-        xml_str += '<datestamp>2000-08-07</datestamp>'
-        xml_str += '<setSpec>0001-3765</setSpec>'
-        xml_str += '</header>'
-        xml_str += '<metadata>'
-        xml_str += '<oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/"'
-        xml_str += ' xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"'
-        xml_str += ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-        xml_str += ' xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/'
-        xml_str += ' http://www.openarchives.org/OAI/2.0/oai_dc.xsd">'
-        xml_str += '<dc:title>Hydrogeology of Bras&#237;lia (DF) Sobradinho river basin</dc:title>'
-        xml_str += '<dc:creator>Zoby, Jos&#233; Luiz G.</dc:creator>'
-        xml_str += '<dc:creator>Duarte, Uriel</dc:creator>'
-        xml_str += '<dc:description/>'
-        xml_str += '<dc:publisher>Academia Brasileira de Ci&#234;ncias</dc:publisher>'
-        xml_str += '<dc:date>2000-06-01</dc:date>'
-        xml_str += '<dc:type>abstract</dc:type>'
-        xml_str += '<dc:format>text/html</dc:format>'
-        xml_str += '<dc:identifier>http://www.scielo.br/scielo.php?script=sci_arttext&amp;pid=S0001-37652000000200015&amp;lng=en&amp;tlng=en</dc:identifier>'
-        xml_str += '<dc:language>en</dc:language>'
-        xml_str += '</oai_dc:dc>'
-        xml_str += '</metadata>'
-        xml_str += '</record>'
+        xml_str = '<record><header><identifier>S0001-37652000000200015</identifier><datestamp>2000-08-07</datestamp><setSpec>0001-3765</setSpec></header><metadata><oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd"><dc:title>Hydrogeology of Bras&#237;lia (DF) Sobradinho river basin</dc:title><dc:creator>Zoby, Jos&#233; Luiz G.</dc:creator><dc:creator>Duarte, Uriel</dc:creator><dc:description/><dc:publisher>Academia Brasileira de Ci&#234;ncias</dc:publisher><dc:date>2000-06-01</dc:date><dc:type>abstract</dc:type><dc:format>text/html</dc:format><dc:identifier>http://www.scielo.br/scielo.php?script=sci_arttext&amp;pid=S0001-37652000000200015&amp;lng=en&amp;tlng=en</dc:identifier><dc:language>en</dc:language></oai_dc:dc></metadata></record>'
 
         self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
 
-
-class GetRecordTests(unittest.TestCase):
-
-    @unittest.skip('refatorar para eliminar o uso de threadlocals')
-    def test_get_record_pipe_add_get_record(self):
-        data = {
-            'verb': 'GetRecord',
-            'baseURL': 'http://books.scielo.org/oai/',
-            'resources': [{
-                'datestamp': datetime(2014, 2, 19, 13, 5, 0),
-                'title': 'title',
-                'creators': {
-                    'collaborator': [['collaborator', None]],
-                    'organizer': [['organizer', None]]
-                },
-                'description': 'description',
-                'publisher': 'publisher',
-                'date': '2014',
-                'formats': ['pdf', 'epub'],
-                'identifier': 'identifier',
-                'language': 'pt'
-            }]
-        }
-
-        root = etree.Element('root')
-        xml, data = serializers.record((root, data))
-
-        xml_str = '<root>'
-        xml_str += '<GetRecord>'
-        xml_str += '<record>'
-        xml_str += '<header>'
-        xml_str += '<identifier>identifier</identifier>'
-        xml_str += '<datestamp>2014-02-19</datestamp>'
-        xml_str += '<setSpec>publisher</setSpec>'
-        xml_str += '</header>'
-        xml_str += '<metadata>'
-        xml_str += '<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"'
-        xml_str += ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-        xml_str += ' xmlns:dc="http://purl.org/dc/elements/1.1/"'
-        xml_str += ' xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/'
-        xml_str += ' http://www.openarchives.org/OAI/2.0/oai_dc.xsd">'
-        xml_str += '<dc:title>title</dc:title>'
-        xml_str += '<dc:creator>organizer</dc:creator>'
-        xml_str += '<dc:contributor>collaborator</dc:contributor>'
-        xml_str += '<dc:description>description</dc:description>'
-        xml_str += '<dc:publisher>publisher</dc:publisher>'
-        xml_str += '<dc:date>2014</dc:date>'
-        xml_str += '<dc:type>book</dc:type>'
-        xml_str += '<dc:format>pdf</dc:format>'
-        xml_str += '<dc:format>epub</dc:format>'
-        xml_str += '<dc:identifier>http://books.scielo.org/id/identifier</dc:identifier>'
-        xml_str += '<dc:language>pt</dc:language>'
-        xml_str += '</oai_dc:dc>'
-        xml_str += '</metadata>'
-        xml_str += '</record>'
-        xml_str += '</GetRecord>'
-        xml_str += '</root>'
-
-        self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
-
-
-class ListRecordsTests(unittest.TestCase):
-
-    @unittest.skip('refatorar para eliminar o uso de threadlocals')
-    def test_list_records_pipe_add_many_records_node(self):
-        data = {
-            'verb': 'ListRecords',
-            'baseURL': 'http://books.scielo.org/oai/',
-            'books': [{
-                'datestamp': datetime(2014, 2, 19, 13, 5, 0),
-                'title': 'title',
-                'creators': {
-                    'collaborator': [['collaborator', None]],
-                    'organizer': [['organizer', None]]
-                },
-                'description': 'description',
-                'publisher': 'publisher',
-                'date': '2014',
-                'formats': ['pdf', 'epub'],
-                'identifier': 'identifier',
-                'language': 'pt'
-            }]
-        }
-
-        root = etree.Element('root')
-        xml, data = serializers.listrecords((root, data))
-
-        xml_str = '<root>'
-        xml_str += '<ListRecords>'
-        xml_str += '<record>'
-        xml_str += '<header>'
-        xml_str += '<identifier>identifier</identifier>'
-        xml_str += '<datestamp>2014-02-19</datestamp>'
-        xml_str += '<setSpec>publisher</setSpec>'
-        xml_str += '</header>'
-        xml_str += '<metadata>'
-        xml_str += '<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"'
-        xml_str += ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-        xml_str += ' xmlns:dc="http://purl.org/dc/elements/1.1/"'
-        xml_str += ' xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/'
-        xml_str += ' http://www.openarchives.org/OAI/2.0/oai_dc.xsd">'
-        xml_str += '<dc:title>title</dc:title>'
-        xml_str += '<dc:creator>organizer</dc:creator>'
-        xml_str += '<dc:contributor>collaborator</dc:contributor>'
-        xml_str += '<dc:description>description</dc:description>'
-        xml_str += '<dc:publisher>publisher</dc:publisher>'
-        xml_str += '<dc:date>2014</dc:date>'
-        xml_str += '<dc:type>book</dc:type>'
-        xml_str += '<dc:format>pdf</dc:format>'
-        xml_str += '<dc:format>epub</dc:format>'
-        xml_str += '<dc:identifier>http://books.scielo.org/id/identifier</dc:identifier>'
-        xml_str += '<dc:language>pt</dc:language>'
-        xml_str += '</oai_dc:dc>'
-        xml_str += '</metadata>'
-        xml_str += '</record>'
-        xml_str += '</ListRecords>'
-        xml_str += '</root>'
-
-        self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
-
-
-@unittest.skip('refatorar para eliminar o uso de threadlocals')
-class TestResumptionTokenPipe(unittest.TestCase):
-    
-    @patch.object(Registry, 'settings')
-    def test_resumption_token_add_next_token_if_not_finished(self, mock_settings):
-        mock_settings.return_value = {'items_per_page': '2'}
-        data = {
-            'books': [{}, {}],
-            'request': {}
-        }
-        root = etree.Element('root')
-
-        pipe = serializers.ResumptionTokenPipe()
-        xml, data = pipe.transform((root, data))
-
-        xml_str = '<root>'
-        xml_str += '<resumptionToken>1</resumptionToken>'
-        xml_str += '</root>'
-
-        self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
-
-    @patch.object(Registry, 'settings')
-    def test_resumption_token_empty_if_finished(self, mock_settings):
-        mock_settings.return_value = {'items_per_page': '2'}
-        data = {
-            'books': [{}, {}],
-            'request': {'resumptionToken': '1'}
-        }
-        root = etree.Element('root')
-
-        pipe = serializers.ResumptionTokenPipe()
-        xml, data = pipe.transform((root, data))
-
-        xml_str = '<root>'
-        xml_str += '<resumptionToken/>'
-        xml_str += '</root>'
-
-        self.assertEqual(etree.tostring(xml), xml_str.encode('utf-8'))
