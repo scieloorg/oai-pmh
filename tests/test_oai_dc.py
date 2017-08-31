@@ -281,3 +281,54 @@ class MakeMetadataTests(unittest.TestCase):
 
         self.assertEqual(metadata.tag, 'metadata')
 
+
+class MakeSourceTests(unittest.TestCase):
+    def setUp(self):
+        self.resource = {'source': ['foo', 'bar']}
+
+    def test_sources_are_multivalued(self):
+        source_elements = oai_dc.make_source(self.resource)
+        self.assertEqual(len(source_elements), 2)
+
+    def test_sources_are_ordered(self):
+        source_elements = oai_dc.make_source(self.resource)
+        self.assertEqual(source_elements[0].text, 'foo')
+        self.assertEqual(source_elements[1].text, 'bar')
+
+    def test_sources_have_no_attrs(self):
+        source_elements = oai_dc.make_source(self.resource)
+        for element in source_elements:
+            self.assertEqual(element.attrib, {})
+
+    def test_dc_namespace(self):
+        source_elements = oai_dc.make_source(self.resource)
+        for element in source_elements:
+            self.assertEqual(element.tag,
+                    '{http://purl.org/dc/elements/1.1/}source')
+
+
+
+class MakeRightsTests(unittest.TestCase):
+    def setUp(self):
+        self.resource = {'rights': ['foo', 'bar']}
+
+    def test_rights_are_multivalued(self):
+        rights_elements = oai_dc.make_rights(self.resource)
+        self.assertEqual(len(rights_elements), 2)
+
+    def test_rights_are_ordered(self):
+        rights_elements = oai_dc.make_rights(self.resource)
+        self.assertEqual(rights_elements[0].text, 'foo')
+        self.assertEqual(rights_elements[1].text, 'bar')
+
+    def test_rights_have_no_attrs(self):
+        rights_elements = oai_dc.make_rights(self.resource)
+        for element in rights_elements:
+            self.assertEqual(element.attrib, {})
+
+    def test_dc_namespace(self):
+        rights_elements = oai_dc.make_rights(self.resource)
+        for element in rights_elements:
+            self.assertEqual(element.tag,
+                    '{http://purl.org/dc/elements/1.1/}rights')
+

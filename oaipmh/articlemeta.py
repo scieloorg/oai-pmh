@@ -208,7 +208,7 @@ class ArticleResourceFacade:
     def source(self):
         """Algo tipo: ['Revista de Microbiologia v.29 n.3 1998']
         """
-        return []
+        return [self.article.bibliographic_legends().get('descriptive_format')]
 
     def language(self):
         lang = self.article.original_language()

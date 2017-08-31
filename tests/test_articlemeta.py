@@ -77,7 +77,7 @@ class ResourceFacadeTests(unittest.TestCase):
 
     def test_date_uses_the_publication_date(self):
         date = self.resource_fac.date()
-        self.assertEqual(date, [datetime(2011, 9, 1)])
+        self.assertEqual(date, [datetime(2012, 2, 16)])
 
     def test_type_uses_the_document_type(self):
         typ = self.resource_fac.type()

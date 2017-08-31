@@ -54,6 +54,9 @@ def make_element_from_pair(resource, name):
     return elements
 
 
+# -- ATENÇÃO:
+# A ordem de definição das funções decoradas por ``register_maker`` é
+# a mesma em que os elementos serão ordenados no XML.
 @register_maker
 def make_title(resource):
     return make_element_from_pair(resource, 'title')
@@ -92,6 +95,11 @@ def make_type(resource):
 
 
 @register_maker
+def make_source(resource):
+    return make_element_from_str(resource, 'source')
+
+
+@register_maker
 def make_format(resource):
     return make_element_from_str(resource, 'format')
 
@@ -99,6 +107,11 @@ def make_format(resource):
 @register_maker
 def make_identifier(resource):
     return make_element_from_str(resource, 'identifier')
+
+
+@register_maker
+def make_rights(resource):
+    return make_element_from_str(resource, 'rights')
 
 
 @register_maker
