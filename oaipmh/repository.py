@@ -50,7 +50,7 @@ def serialize_get_record(repo: RepositoryMeta, oai_request: OAIRequest,
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
-            'resources': [asdict(resource)],
+            'resources': (asdict(resource)),
             }
 
     return serializers.serialize_get_record(data, metadata_formatter)
@@ -68,7 +68,7 @@ def serialize_list_records(repo: RepositoryMeta, oai_request: OAIRequest,
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
-            'resources': [asdict(resource) for resource in resources],
+            'resources': (asdict(resource) for resource in resources),
             'resumptionToken': encoded_resumption_token,
             }
     return serializers.serialize_list_records(data, metadata_formatter)
@@ -86,7 +86,7 @@ def serialize_list_identifiers(repo: RepositoryMeta, oai_request: OAIRequest,
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
-            'resources': [asdict(resource) for resource in resources],
+            'resources': (asdict(resource) for resource in resources),
             'resumptionToken': encoded_resumption_token,
             }
 
@@ -98,7 +98,7 @@ def serialize_list_metadata_formats(repo: RepositoryMeta, oai_request: OAIReques
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
-            'formats': [asdict(fmt) for fmt in formats],
+            'formats': (asdict(fmt) for fmt in formats),
             }
 
     return serializers.serialize_list_metadata_formats(data)
@@ -116,7 +116,7 @@ def serialize_list_sets(repo: RepositoryMeta, oai_request: OAIRequest,
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
-            'sets': [asdict(s) for s in sets],
+            'sets': (asdict(s) for s in sets),
             'resumptionToken': encoded_resumption_token,
             }
     return serializers.serialize_list_sets(data)
