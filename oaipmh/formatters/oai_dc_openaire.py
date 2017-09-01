@@ -1,5 +1,7 @@
 from lxml import etree
 
+from oaipmh import entities
+
 
 __all__ = ['make_metadata']
 
@@ -20,7 +22,7 @@ def register_maker(f):
     return f
 
 
-def make_metadata(resource):
+def make_metadata(resource: entities.Resource):
     metadata = etree.Element('metadata')
     oai_rec = etree.SubElement(metadata, '{%s}dc' % OAIDC,
         nsmap={'oai_dc': OAIDC, 'dc': DC, 'xsi': XSI},
@@ -32,6 +34,33 @@ def make_metadata(resource):
             oai_rec.append(element)
 
     return metadata
+
+
+def augment_metadata(resource: entities.Resource):
+    resource.rights.append('info:eu-repo/semantics/openAccess')
+    resource.type[:] = [fetch_pubtype_from_vocabulary(t) for t in resource.type]
+    return resource
+
+
+ARTICLETYPE_TO_VOCABULARY_MAP = {
+        'research-article': 'info:eu-repo/semantics/article',
+        'article-commentary': 'info:eu-repo/semantics/other',
+        'book-review': 'info:eu-repo/semantics/review',
+        'brief-report': 'info:eu-repo/semantics/report',
+        'case-report': 'info:eu-repo/semantics/report',
+        'correction': 'info:eu-repo/semantics/other',
+        'editorial': 'info:eu-repo/semantics/other',
+        'in-brief': 'info:eu-repo/semantics/other',
+        'letter': 'info:eu-repo/semantics/other',
+        'other': 'info:eu-repo/semantics/other',
+        'partial-retraction': 'info:eu-repo/semantics/other',
+        'rapid-communication': 'info:eu-repo/semantics/other',
+        'reply': 'info:eu-repo/semantics/other',
+        'retraction': 'info:eu-repo/semantics/other',
+        'review-article': 'info:eu-repo/semantics/article',
+        }
+def fetch_pubtype_from_vocabulary(typ):
+    return ARTICLETYPE_TO_VOCABULARY_MAP.get(typ, 'info:eu-repo/semantics/other')
 
 
 def make_element_from_str(resource, name, tostr=str):

@@ -301,10 +301,19 @@ class Repository:
                 'ListSets': self.list_sets,
                 }
 
-    def add_metadataformat(self, metadata: MetadataFormat, formatter):
+    def add_metadataformat(self, metadata: MetadataFormat, formatter, augmenter):
+        """Registra formatos de metadados suportados pelo repositório.
+
+        :param metadata: descreve o formato.
+        :param formatter: função que dado um dicionário, produz uma árvore de 
+        elementos XML (etree.Element).
+        :param augmenter: função que dado um dicionário, produz outro dicionário.
+        Este último será o argumento para a função ``formatter``.
+        """
         self.formats[metadata.metadataPrefix] = {
                 'metadata': metadata,
                 'formatter': formatter,
+                'augmenter': augmenter,
                 }
 
     def handle_request(self, qstr: str):
@@ -340,10 +349,10 @@ class Repository:
         if oairequest.metadataPrefix not in self.formats:
             return serialize_cannot_disseminate_format(self.metadata, oairequest)
 
-        formatter = self.formats[oairequest.metadataPrefix]['formatter']
-        resource = self.ds.get(oairequest.identifier)
+        fmt = self.formats[oairequest.metadataPrefix]
+        resource = fmt['augmenter'](self.ds.get(oairequest.identifier))
         return serialize_get_record(self.metadata, oairequest, resource,
-                metadata_formatter=formatter)
+                metadata_formatter=fmt['formatter'])
 
     def _filter_records(self, token: ResumptionToken):
         view = self.setsreg.get_view(token.set)
@@ -361,11 +370,12 @@ class Repository:
                 return serialize_cannot_disseminate_format(self.metadata, oairequest)
 
         token = get_resumption_token_from_request(oairequest, self.listslen)
-        formatter = self.formats[token.metadataPrefix]['formatter']
-        resources = list(self._filter_records(token))
+        fmt = self.formats[token.metadataPrefix]
+        resources = list((fmt['augmenter'](r)
+                          for r in self._filter_records(token)))
         next_token = next_resumption_token(token, resources)
         return serialize_list_records(self.metadata, oairequest, resources,
-                next_token, metadata_formatter=formatter)
+                next_token, metadata_formatter=fmt['formatter'])
 
     @check_request_args(check_listidentifiers_args)
     def list_identifiers(self, oairequest: OAIRequest) -> bytes:

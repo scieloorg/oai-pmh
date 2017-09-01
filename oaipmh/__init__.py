@@ -6,19 +6,30 @@ from pyramid.events import NewRequest
 from oaipmh import (
         repository,
         datastores,
-        formatters,
         sets,
         utils,
         articlemeta,
+        entities,
+        )
+from oaipmh.formatters import (
+        oai_dc,
+        oai_dc_openaire,
         )
 
 
 METADATA_FORMATS = [
-        (repository.MetadataFormat(
+        (entities.MetadataFormat(
             metadataPrefix='oai_dc',
             schema='http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
             metadataNamespace='http://www.openarchives.org/OAI/2.0/oai_dc/'),
-         formatters.oai_dc.make_metadata),
+         oai_dc.make_metadata,
+         lambda x: x),
+        (entities.MetadataFormat(
+            metadataPrefix='oai_dc_openaire',
+            schema='http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
+            metadataNamespace='http://www.openarchives.org/OAI/2.0/oai_dc/'),
+         oai_dc_openaire.make_metadata,
+         oai_dc_openaire.augment_metadata),
         ]
 
 
@@ -93,8 +104,9 @@ def add_oai_repository(event):
             settings['repository_meta'], ds, sets.SetsRegistry(ds, STATIC_SETS),
             settings['oaipmh.listslen'])
 
-    for metadata, formatter in METADATA_FORMATS:
-        event.request.repository.add_metadataformat(metadata, formatter)
+    for metadata, formatter, augmenter in METADATA_FORMATS:
+        event.request.repository.add_metadataformat(metadata, formatter,
+                augmenter)
 
 
 def main(global_config, **settings):
