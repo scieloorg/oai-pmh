@@ -50,7 +50,7 @@ def serialize_get_record(repo: RepositoryMeta, oai_request: OAIRequest,
     data = {
             'repository': asdict(repo),
             'request': asdict(oai_request),
-            'resources': (asdict(resource)),
+            'resources': [asdict(resource)],
             }
 
     return serializers.serialize_get_record(data, metadata_formatter)
