@@ -1,6 +1,7 @@
 import re
 import functools
 import operator
+import logging
 from typing import Iterable
 import urllib.parse
 
@@ -16,6 +17,9 @@ from .entities import (
         MetadataFormat,
         ResumptionToken,
         )
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 RESUMPTION_TOKEN_PATTERNS = {
@@ -321,6 +325,8 @@ class Repository:
         """
         parsed_qstr = urllib.parse.parse_qs(qstr)
         oairequest = oairequest_from_querystring(parsed_qstr)
+
+        LOGGER.info('handling OAI request: %s', repr(oairequest))
 
         if has_illegal_args(parsed_qstr) or has_repeated_args(parsed_qstr):
             return serialize_bad_argument(self.metadata, oairequest)
