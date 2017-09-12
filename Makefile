@@ -1,7 +1,8 @@
 APP_VERSION := $(shell python setup.py --version)
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 VCS_REF := $(strip $(shell git rev-parse --short HEAD))
-IMAGE_FULLNAME := registry.scielo.org:5000/scieloorg/oai-pmh
+#IMAGE_FULLNAME := registry.scielo.org:5000/scieloorg/oai-pmh
+IMAGE_FULLNAME := scieloorg/oai-pmh
 
 clean:
 	@ rm -f dist/*
