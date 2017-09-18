@@ -369,7 +369,6 @@ class ListRecordsResumptionTokenRegexpTests(unittest.TestCase):
         self.assertIsNone(re.fullmatch(RES_TOKEN_RECORDS, token))
 
 
-
 class isValidResumptionTokenTests(unittest.TestCase):
     def test_valid(self):
         token = ':1998-01-01:1998-01-01:0:10:oai_dc'
@@ -384,11 +383,11 @@ class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
 
     def test_case_1(self):
         token = 'setname:1998-01-01:1998-12-31:0:10:oai_dc'
-        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_2(self):
         token = 'setname:1998-01-01:1998-12-31:0:10:'
-        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_3(self):
         token = 'setname:1998-01-01:1998-12-31:0::oai_dc'
@@ -416,11 +415,11 @@ class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
 
     def test_case_9(self):
         token = 'setname:1998-01-01::0:10:oai_dc'
-        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_10(self):
         token = 'setname:1998-01-01::0:10:'
-        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_11(self):
         token = 'setname:1998-01-01::0::oai_dc'
@@ -448,11 +447,11 @@ class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
 
     def test_case_17(self):
         token = 'setname::1998-12-31:0:10:oai_dc'
-        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_18(self):
         token = 'setname::1998-12-31:0:10:'
-        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_19(self):
         token = 'setname::1998-12-31:0::oai_dc'
@@ -480,11 +479,11 @@ class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
 
     def test_case_25(self):
         token = 'setname:::0:10:oai_dc'
-        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_26(self):
         token = 'setname:::0:10:'
-        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_27(self):
         token = 'setname:::0::oai_dc'
@@ -512,11 +511,11 @@ class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
 
     def test_case_33(self):
         token = ':1998-01-01:1998-12-31:0:10:oai_dc'
-        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_34(self):
         token = ':1998-01-01:1998-12-31:0:10:'
-        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_35(self):
         token = ':1998-01-01:1998-12-31:0::oai_dc'
@@ -544,11 +543,11 @@ class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
 
     def test_case_41(self):
         token = ':1998-01-01::0:10:oai_dc'
-        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_42(self):
         token = ':1998-01-01::0:10:'
-        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_43(self):
         token = ':1998-01-01::0::oai_dc'
@@ -576,11 +575,11 @@ class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
 
     def test_case_49(self):
         token = '::1998-12-31:0:10:oai_dc'
-        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_50(self):
         token = '::1998-12-31:0:10:'
-        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_51(self):
         token = '::1998-12-31:0::oai_dc'
@@ -608,11 +607,11 @@ class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
 
     def test_case_57(self):
         token = ':::0:10:oai_dc'
-        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_58(self):
         token = ':::0:10:'
-        self.assertIsNotNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
+        self.assertIsNone(re.fullmatch(RES_TOKEN_IDENTIFIERS, token))
 
     def test_case_59(self):
         token = ':::0::oai_dc'
@@ -832,82 +831,6 @@ class check_listrecords_argsTests(unittest.TestCase):
 
     def test_verb_and_resumptiontoken_nand_anyfilter(self):
         self.assertTrue(repository.check_listrecords_args(
-            ['verb', 'resumptionToken']))
-
-
-class check_listidentifiers_argsTests(unittest.TestCase):
-    def test_verb_is_missing(self):
-        self.assertFalse(repository.check_listidentifiers_args([]))
-
-    def test_verb_nand_resumptiontoken_and_metadataprefix(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'metadataPrefix']))
-
-    def test_verb_nand_resumptiontoken_nand_metadataprefix(self):
-        self.assertTrue(repository.check_listidentifiers_args(['verb']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case1(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'from', 'until', 'set', 'metadataPrefix']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case2(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'from', 'until', 'set']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case3(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'from', 'until', 'metadataPrefix']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case4(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'from', 'until']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case5(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'from', 'set', 'metadataPrefix']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case6(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'from', 'set']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case7(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'from', 'metadataPrefix']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case8(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'from']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case9(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'until', 'set', 'metadataPrefix']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case10(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'until', 'set']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case11(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'until', 'metadataPrefix']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case12(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'until']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case13(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'set', 'metadataPrefix']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case14(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'set']))
-
-    def test_verb_and_resumptiontoken_and_anythingelse_case15(self):
-        self.assertFalse(repository.check_listidentifiers_args(
-            ['verb', 'resumptionToken', 'metadataPrefix']))
-
-    def test_verb_and_resumptiontoken_nand_anyfilter(self):
-        self.assertTrue(repository.check_listidentifiers_args(
             ['verb', 'resumptionToken']))
 
 

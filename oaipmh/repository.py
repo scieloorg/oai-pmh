@@ -24,9 +24,9 @@ LOGGER = logging.getLogger(__name__)
 
 RESUMPTION_TOKEN_PATTERNS = {
         'ListRecords': re.compile(r'^(\w+)?:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:\w+$'),
-        'ListIdentifiers': re.compile(r'^(\w+)?:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:$'),
         'ListSets': re.compile(r'^:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:$'),
         }
+RESUMPTION_TOKEN_PATTERNS['ListIdentifiers'] = RESUMPTION_TOKEN_PATTERNS['ListRecords']
 
 
 OAIPMH_LEGAL_ARGS = set(['verb', 'identifier', 'metadataPrefix', 'set',
@@ -228,18 +228,6 @@ def check_listrecords_args(detected_args):
         return 'metadataPrefix' in args
 
 
-def check_listidentifiers_args(detected_args):
-    args = set(detected_args)
-    if 'verb' not in args:
-        return False
-
-    if 'resumptionToken' in args:
-        return not any((operator.contains(args, arg)
-                        for arg in ['from', 'until', 'set', 'metadataPrefix']))
-    else:
-        return 'metadataPrefix' not in args
-
-
 def check_listsets_args(detected_args):
     args = set(detected_args)
     if 'verb' not in args:
@@ -383,8 +371,12 @@ class Repository:
         return serialize_list_records(self.metadata, oairequest, resources,
                 next_token, metadata_formatter=fmt['formatter'])
 
-    @check_request_args(check_listidentifiers_args)
+    @check_request_args(check_listrecords_args)
     def list_identifiers(self, oairequest: OAIRequest) -> bytes:
+        if not oairequest.resumptionToken:
+            if oairequest.metadataPrefix not in self.formats:
+                return serialize_cannot_disseminate_format(self.metadata, oairequest)
+
         token = get_resumption_token_from_request(oairequest, self.listslen)
         resources = list(self._filter_records(token))
         next_token = next_resumption_token(token, resources)
