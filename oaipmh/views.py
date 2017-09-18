@@ -6,7 +6,7 @@ from oaipmh import repository
 
 
 def xml_response(body):
-    return Response(body=body, charset='utf-8', content_type='application/xml')
+    return Response(body=body, charset='utf-8', content_type='text/xml')
 
 
 @view_config(route_name='root')
