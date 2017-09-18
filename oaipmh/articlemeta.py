@@ -6,7 +6,7 @@ import json
 from articlemeta import client as articlemeta_client
 
 from . import utils
-from .datastores import DataStore
+from .datastores import DataStore, DoesNotExistError
 from .entities import Resource
 
 
