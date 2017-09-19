@@ -57,7 +57,7 @@ DEFAULT_SETTINGS = [
         ('oaipmh.collection', 'OAIPMH_COLLECTION', str,
             'scl'),
         ('oaipmh.listslen', 'OAIPMH_LISTSLEN', int,
-            20),
+            100),
         ]
 
 
