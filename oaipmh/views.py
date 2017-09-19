@@ -1,3 +1,6 @@
+import time
+import logging
+import functools
 from urllib import parse
 
 from pyramid.view import view_config
@@ -5,6 +8,9 @@ from pyramid.response import Response
 from pyramid import httpexceptions
 
 from oaipmh import repository
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def xml_response(body):
@@ -23,7 +29,27 @@ def query_string(request):
         raise ValueError('Cannot get querystring from request: "%s"' % request)
 
 
+def log_service_time(func):
+    """Loga o tempo para o serviço da requisição. Nenhuma exceção relacionada
+    a medição deve causar erro no serviço da requisição.
+    """
+    @functools.wraps(func)
+    def wrapper(req):
+        start_time = time.time()
+        result = func(req)
+        elapsed_time = time.time() - start_time
+        try:
+            LOGGER.info('total time to service the request "%s %s", with body '
+                        '"%s": %s ms', req.method, req.url, req.body.decode(req.charset),
+                            (elapsed_time * 1000))
+        except Exception as exc:
+            LOGGER.exception(exc)
+        return result
+    return wrapper
+
+
 @view_config(route_name='root')
+@log_service_time
 def root(request):
     if request.method not in ['GET', 'POST']:
         raise httpexceptions.HTTPMethodNotAllowed()
