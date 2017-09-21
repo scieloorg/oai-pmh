@@ -18,6 +18,7 @@ from collections import OrderedDict
 
 from .articlemeta import ArticleMetaFilteredView
 from .entities import Set
+from .datastores import DoesNotExistError  
 
 
 class SetsRegistry:
@@ -51,7 +52,10 @@ class SetsRegistry:
         try:
             return self.static_views[setspec]
         except KeyError:
-            return get_view_for_journal_set(get_set_from_journal(self.ds, setspec))
+            try:
+                return get_view_for_journal_set(get_set_from_journal(self.ds, setspec))
+            except DoesNotExistError:
+                return None
 
 
 def translate_virtual_offset(size, offset):
