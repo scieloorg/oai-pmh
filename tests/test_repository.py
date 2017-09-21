@@ -643,9 +643,7 @@ class RepositoryTests(unittest.TestCase):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
         setsreg = sets.SetsRegistry(ds, [])
-        datestamp_validator = lambda x: True
-        self.repository = repository.Repository(meta, ds, setsreg, 10,
-                datestamp_validator)
+        self.repository = repository.Repository(meta, ds, setsreg, 10)
 
     def test_handling_req_with_illegal_args(self):
         req = 'verb=Identify&illegalarg=foo'

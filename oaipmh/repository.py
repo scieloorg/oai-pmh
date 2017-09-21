@@ -2,10 +2,7 @@ import re
 import functools
 import operator
 import logging
-from typing import (
-        Iterable,
-        Callable,
-        )
+from typing import Iterable
 import urllib.parse
 
 from .formatters import oai_dc
@@ -281,13 +278,11 @@ def oairequest_from_querystring(parsed_qstr):
 
 class Repository:
     def __init__(self, metadata: RepositoryMeta, ds: datastores.DataStore,
-            setsreg: sets.SetsRegistry, listslen: int,
-            granularity_validator: Callable):
+            setsreg: sets.SetsRegistry, listslen: int):
         self.metadata = metadata
         self.ds = ds
         self.setsreg = setsreg
         self.listslen = listslen
-        self.granularity_validator = granularity_validator
         self.formats = {}
         self.verbs = {
                 'Identify': self.identify,
@@ -356,13 +351,7 @@ class Repository:
     def _filter_records(self, token: ResumptionToken):
         view = self.setsreg.get_view(token.set)
         if view is None:
-            raise SetNameError('cannot find a view for set "%s"', token.set)
-        
-        if not self.granularity_validator(token.from_) or not self.granularity_validator(token.until):
-            raise BadArgumentError('invalid granularity')
-
-        if token.from_ > token.until:
-            raise BadArgumentError('invalid range for datestamps')
+            raise SetNameError('Cannot find a view for set "%s"', token.set)
 
         resources = self.ds.list(int(token.offset), int(token.count),
                 view=view, _from=token.from_, until=token.until)
