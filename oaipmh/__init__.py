@@ -1,4 +1,5 @@
 import os
+import re
 
 from pyramid.config import Configurator
 from pyramid.events import NewRequest
@@ -54,6 +55,8 @@ DEFAULT_SETTINGS = [
             'no'),
         ('oaipmh.repo.granularity', 'OAIPMH_REPO_GRANULARITY', str,
             'YYYY-MM-DD'),
+        ('oaipmh.repo.granularity_regex', 'OAIPMH_REPO_GRANULARITY_REGEX',
+            re.compile, r'^(\d{4})-(\d{2})-(\d{2})$'),
         ('oaipmh.collection', 'OAIPMH_COLLECTION', str,
             'scl'),
         ('oaipmh.listslen', 'OAIPMH_LISTSLEN', int,
@@ -96,13 +99,20 @@ def get_repository_meta(settings):
     return repometa
 
 
+def get_granularity_validator(settings):
+    def validate(date_time):
+        return bool(settings['oaipmh.repo.granularity_regex'].fullmatch(
+            date_time))
+    return validate
+
+
 def add_oai_repository(event):
     settings = event.request.registry.settings
     ds = get_datastore(settings)
 
     event.request.repository = repository.Repository(
             settings['repository_meta'], ds, sets.SetsRegistry(ds, STATIC_SETS),
-            settings['oaipmh.listslen'])
+            settings['oaipmh.listslen'], get_granularity_validator(settings))
 
     for metadata, formatter, augmenter in METADATA_FORMATS:
         event.request.repository.add_metadataformat(metadata, formatter,
