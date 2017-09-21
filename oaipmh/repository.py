@@ -357,11 +357,14 @@ class Repository:
         view = self.setsreg.get_view(token.set)
         if view is None:
             raise SetNameError('cannot find a view for set "%s"', token.set)
-        
-        if not self.granularity_validator(token.from_) or not self.granularity_validator(token.until):
+
+        if token.from_ and not self.granularity_validator(token.from_):
             raise BadArgumentError('invalid granularity')
 
-        if token.from_ > token.until:
+        if token.until and not self.granularity_validator(token.until):
+            raise BadArgumentError('invalid granularity')
+
+        if (token.from_ and token.until) and (token.from_ > token.until):
             raise BadArgumentError('invalid range for datestamps')
 
         resources = self.ds.list(int(token.offset), int(token.count),
