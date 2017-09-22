@@ -4,6 +4,10 @@ from collections import namedtuple
 import urllib.parse
 
 from .fixtures import factories
+from oaipmh.formatters import (
+        oai_dc,
+        oai_dc_openaire,
+        )
 from oaipmh import (
         repository,
         datastores,
@@ -664,111 +668,109 @@ class RepositoryTests(unittest.TestCase):
 
 
 class ListIdentifiersTests(unittest.TestCase):
-    def test_wrong_granularity_in_from_arg(self):
+    metadata_formats = [
+            (entities.MetadataFormat(
+                metadataPrefix='oai_dc',
+                schema='http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
+                metadataNamespace='http://www.openarchives.org/OAI/2.0/oai_dc/'),
+             oai_dc.make_metadata,
+             lambda x: x),
+            (entities.MetadataFormat(
+                metadataPrefix='oai_dc_openaire',
+                schema='http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
+                metadataNamespace='http://www.openarchives.org/OAI/2.0/oai_dc/'),
+             oai_dc_openaire.make_metadata,
+             oai_dc_openaire.augment_metadata),
+            ]
+
+    def setUp(self):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
         setsreg = sets.SetsRegistry(ds, [])
         datestamp_validator = lambda x: re.fullmatch(
                 r'^(\d{4})-(\d{2})-(\d{2})$', x)
-        repo = repository.Repository(meta, ds, setsreg, 10,
+        self.repo = repository.Repository(meta, ds, setsreg, 10,
                 datestamp_validator)
+        for metadata, formatter, augmenter in self.metadata_formats:
+            self.repo.add_metadataformat(metadata, formatter, augmenter)
 
+    def test_wrong_granularity_in_from_arg(self):
         req = 'verb=ListIdentifiers&from=2002-01-01T00:00:00Z'
-        result = repo.handle_request(req)
+        result = self.repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
         
     def test_wrong_granularity_in_until_arg(self):
-        meta = factories.get_sample_repositorymeta()
-        ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
-        datestamp_validator = lambda x: re.fullmatch(
-                r'^(\d{4})-(\d{2})-(\d{2})$', x)
-        repo = repository.Repository(meta, ds, setsreg, 10,
-                datestamp_validator)
-
         req = 'verb=ListIdentifiers&until=2002-01-01T00:00:00Z'
-        result = repo.handle_request(req)
+        result = self.repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
         
     def test_when_from_and_until_granularities_are_different(self):
-        meta = factories.get_sample_repositorymeta()
-        ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
-        datestamp_validator = lambda x: re.fullmatch(
-                r'^(\d{4})-(\d{2})-(\d{2})$', x)
-        repo = repository.Repository(meta, ds, setsreg, 10,
-                datestamp_validator)
-
         req = 'verb=ListIdentifiers&from=2000-01-01&until=2002-01-01T00:00:00Z'
-        result = repo.handle_request(req)
+        result = self.repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
 
     def test_when_from_is_greater_than_until(self):
-        meta = factories.get_sample_repositorymeta()
-        ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
-        datestamp_validator = lambda x: re.fullmatch(
-                r'^(\d{4})-(\d{2})-(\d{2})$', x)
-        repo = repository.Repository(meta, ds, setsreg, 10,
-                datestamp_validator)
-
         req = 'verb=ListIdentifiers&from=2003-01-01&until=2002-01-01'
-        result = repo.handle_request(req)
+        result = self.repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+
+    def test_empty_list_returns_norecordsmatch_error(self):
+        req = 'verb=ListIdentifiers&metadataPrefix=oai_dc'
+        result = self.repo.handle_request(req)
+        self.assertTrue('<error code="noRecordsMatch"/>'.encode('utf-8') in result)
 
 
 class ListRecordsTests(unittest.TestCase):
-    def test_wrong_granularity_in_from_arg(self):
+    metadata_formats = [
+            (entities.MetadataFormat(
+                metadataPrefix='oai_dc',
+                schema='http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
+                metadataNamespace='http://www.openarchives.org/OAI/2.0/oai_dc/'),
+             oai_dc.make_metadata,
+             lambda x: x),
+            (entities.MetadataFormat(
+                metadataPrefix='oai_dc_openaire',
+                schema='http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
+                metadataNamespace='http://www.openarchives.org/OAI/2.0/oai_dc/'),
+             oai_dc_openaire.make_metadata,
+             oai_dc_openaire.augment_metadata),
+            ]
+
+    def setUp(self):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
         setsreg = sets.SetsRegistry(ds, [])
         datestamp_validator = lambda x: re.fullmatch(
                 r'^(\d{4})-(\d{2})-(\d{2})$', x)
-        repo = repository.Repository(meta, ds, setsreg, 10,
+        self.repo = repository.Repository(meta, ds, setsreg, 10,
                 datestamp_validator)
+        for metadata, formatter, augmenter in self.metadata_formats:
+            self.repo.add_metadataformat(metadata, formatter, augmenter)
 
-        req = 'verb=ListIdentifiers&from=2002-01-01T00:00:00Z'
-        result = repo.handle_request(req)
+    def test_wrong_granularity_in_from_arg(self):
+        req = 'verb=ListRecords&from=2002-01-01T00:00:00Z'
+        result = self.repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
         
     def test_wrong_granularity_in_until_arg(self):
-        meta = factories.get_sample_repositorymeta()
-        ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
-        datestamp_validator = lambda x: re.fullmatch(
-                r'^(\d{4})-(\d{2})-(\d{2})$', x)
-        repo = repository.Repository(meta, ds, setsreg, 10,
-                datestamp_validator)
-
-        req = 'verb=ListIdentifiers&until=2002-01-01T00:00:00Z'
-        result = repo.handle_request(req)
+        req = 'verb=ListRecords&until=2002-01-01T00:00:00Z'
+        result = self.repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
         
     def test_when_from_and_until_granularities_are_different(self):
-        meta = factories.get_sample_repositorymeta()
-        ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
-        datestamp_validator = lambda x: re.fullmatch(
-                r'^(\d{4})-(\d{2})-(\d{2})$', x)
-        repo = repository.Repository(meta, ds, setsreg, 10,
-                datestamp_validator)
-
-        req = 'verb=ListIdentifiers&from=2000-01-01&until=2002-01-01T00:00:00Z'
-        result = repo.handle_request(req)
+        req = 'verb=ListRecords&from=2000-01-01&until=2002-01-01T00:00:00Z'
+        result = self.repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
 
     def test_when_from_is_greater_than_until(self):
-        meta = factories.get_sample_repositorymeta()
-        ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
-        datestamp_validator = lambda x: re.fullmatch(
-                r'^(\d{4})-(\d{2})-(\d{2})$', x)
-        repo = repository.Repository(meta, ds, setsreg, 10,
-                datestamp_validator)
-
-        req = 'verb=ListIdentifiers&from=2003-01-01&until=2002-01-01'
-        result = repo.handle_request(req)
+        req = 'verb=ListRecords&from=2003-01-01&until=2002-01-01'
+        result = self.repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+
+    def test_empty_list_returns_norecordsmatch_error(self):
+        req = 'verb=ListRecords&metadataPrefix=oai_dc'
+        result = self.repo.handle_request(req)
+        self.assertTrue('<error code="noRecordsMatch"/>'.encode('utf-8') in result)
 
 
 class ListMetadataFormatsTests(unittest.TestCase):

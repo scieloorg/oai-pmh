@@ -159,6 +159,13 @@ def serialize_bad_resumption_token(data):
     return output
 
 
+def serialize_no_records_match(data):
+    ppl = plumber.Pipeline(root, responsedate, request, norecordsmatch,
+            tobytes)
+    output = next(ppl.run(data, rewrap=True))
+    return output
+
+
 #-----------------------------------------------------------------------------
 # Filtros e funções que operam a serialização dos dados
 #-----------------------------------------------------------------------------
@@ -477,14 +484,6 @@ def iddoesnotexist(item):
     return item
 
 
-class NoRecordsPipe(plumber.Filter):
-    def transform(self, item):
-        xml, data = item
-        sub = etree.SubElement(xml, 'error')
-        sub.attrib['code'] = 'noRecordsMatch'
-        return (xml, data)
-
-
 @plumber.filter
 def badargument(item):
     xml, data = item
@@ -506,5 +505,13 @@ def badresumptiontoken(item):
     xml, data = item
     sub = etree.SubElement(xml, 'error')
     sub.attrib['code'] = 'badResumptionToken'
+    return item
+
+
+@plumber.filter
+def norecordsmatch(item):
+    xml, data = item
+    sub = etree.SubElement(xml, 'error')
+    sub.attrib['code'] = 'noRecordsMatch'
     return item
 

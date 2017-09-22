@@ -178,6 +178,16 @@ def serialize_bad_resumption_token(repo: RepositoryMeta,
     return serializers.serialize_bad_resumption_token(data)
 
 
+def serialize_no_records_match(repo: RepositoryMeta,
+        oai_request: OAIRequest) -> bytes:
+    data = {
+            'repository': asdict(repo),
+            'request': asdict(oai_request),
+            }
+
+    return serializers.serialize_no_records_match(data)
+
+
 class BadArgumentError(Exception):
     """Lançada quando a requisição contém argumentos inválidos para o verbo
     definido.
@@ -363,9 +373,12 @@ class Repository:
                 metadata_formatter=fmt['formatter'])
 
     def _filter_records(self, token: ResumptionToken):
-        view = self.setsreg.get_view(token.set)
-        if view is None:
-            raise SetNameError('cannot find a view for set "%s"', token.set)
+        if token.set is not None:
+            view = self.setsreg.get_view(token.set)
+            if view is None:
+                raise SetNameError('cannot find a view for set "%s"', token.set)
+        else:
+            view = None
 
         if token.from_ and not self.granularity_validator(token.from_):
             raise BadArgumentError('invalid granularity')
@@ -390,6 +403,10 @@ class Repository:
         fmt = self.formats[token.metadataPrefix]
         resources = list((fmt['augmenter'](r)
                           for r in self._filter_records(token)))
+
+        if len(resources) == 0:
+            return serialize_no_records_match(self.metadata, oairequest)
+
         next_token = next_resumption_token(token, resources)
         return serialize_list_records(self.metadata, oairequest, resources,
                 next_token, metadata_formatter=fmt['formatter'])
@@ -402,6 +419,10 @@ class Repository:
 
         token = get_resumption_token_from_request(oairequest, self.listslen)
         resources = list(self._filter_records(token))
+
+        if len(resources) == 0:
+            return serialize_no_records_match(self.metadata, oairequest)
+
         next_token = next_resumption_token(token, resources)
         return serialize_list_identifiers(self.metadata, oairequest, resources,
                 next_token)
@@ -440,7 +461,7 @@ def get_resumption_token_from_request(oairequest: OAIRequest,
             raise BadResumptionTokenError('token count is different than ``oaipmh.listslen``')
     else:
         token = ResumptionToken(set=oairequest.set, from_=oairequest.from_,
-                until=oairequest.until, offset='0', count=default_count,
+                until=oairequest.until, offset='0', count=str(default_count),
                 metadataPrefix=oairequest.metadataPrefix)
 
     return token
