@@ -643,7 +643,9 @@ class RepositoryTests(unittest.TestCase):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
         setsreg = sets.SetsRegistry(ds, [])
-        self.repository = repository.Repository(meta, ds, setsreg, 10)
+        datestamp_validator = lambda x: True
+        self.repository = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
 
     def test_handling_req_with_illegal_args(self):
         req = 'verb=Identify&illegalarg=foo'
@@ -659,6 +661,114 @@ class RepositoryTests(unittest.TestCase):
         req = 'verb=InvalidVerb'
         result = self.repository.handle_request(req)
         self.assertTrue('<error code="badVerb">'.encode('utf-8') in result)
+
+
+class ListIdentifiersTests(unittest.TestCase):
+    def test_wrong_granularity_in_from_arg(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListIdentifiers&from=2002-01-01T00:00:00Z'
+        result = repo.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        
+    def test_wrong_granularity_in_until_arg(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListIdentifiers&until=2002-01-01T00:00:00Z'
+        result = repo.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        
+    def test_when_from_and_until_granularities_are_different(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListIdentifiers&from=2000-01-01&until=2002-01-01T00:00:00Z'
+        result = repo.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+
+    def test_when_from_is_greater_than_until(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListIdentifiers&from=2003-01-01&until=2002-01-01'
+        result = repo.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+
+
+class ListRecordsTests(unittest.TestCase):
+    def test_wrong_granularity_in_from_arg(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListRecords&from=2002-01-01T00:00:00Z'
+        result = repo.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        
+    def test_wrong_granularity_in_until_arg(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListRecords&until=2002-01-01T00:00:00Z'
+        result = repo.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        
+    def test_when_from_and_until_granularities_are_different(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListRecords&from=2000-01-01&until=2002-01-01T00:00:00Z'
+        result = repo.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+
+    def test_when_from_is_greater_than_until(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListRecords&from=2003-01-01&until=2002-01-01'
+        result = repo.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
 
 
 class oairequest_from_querystringTests(unittest.TestCase):
