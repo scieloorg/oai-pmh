@@ -243,6 +243,15 @@ def check_listsets_args(detected_args):
         return 'metadataPrefix' not in args
 
 
+def check_listmetadataformats_args(detected_args):
+    args = set(detected_args)
+    if 'verb' not in args:
+        return False
+
+    return not any((operator.contains(args, arg)
+                        for arg in ['from', 'until', 'set', 'metadataPrefix']))
+
+
 def get_or_default(mapping, key, default=None):
     """Retorna o valor do índice 0 de ``mapping[key]`` ou ``default``.
     """
@@ -397,7 +406,8 @@ class Repository:
         return serialize_list_identifiers(self.metadata, oairequest, resources,
                 next_token)
 
-    @check_request_args(functools.partial(are_equal, ['verb']))
+    #@check_request_args(functools.partial(are_equal, ['verb']))
+    @check_request_args(check_listmetadataformats_args)
     def list_metadata_formats(self, oairequest: OAIRequest) -> bytes:
         fmts = [fmt['metadata'] for fmt in self.formats.values()]
         return serialize_list_metadata_formats(self.metadata, oairequest, fmts)

@@ -727,7 +727,7 @@ class ListRecordsTests(unittest.TestCase):
         repo = repository.Repository(meta, ds, setsreg, 10,
                 datestamp_validator)
 
-        req = 'verb=ListRecords&from=2002-01-01T00:00:00Z'
+        req = 'verb=ListIdentifiers&from=2002-01-01T00:00:00Z'
         result = repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
         
@@ -740,7 +740,7 @@ class ListRecordsTests(unittest.TestCase):
         repo = repository.Repository(meta, ds, setsreg, 10,
                 datestamp_validator)
 
-        req = 'verb=ListRecords&until=2002-01-01T00:00:00Z'
+        req = 'verb=ListIdentifiers&until=2002-01-01T00:00:00Z'
         result = repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
         
@@ -753,7 +753,7 @@ class ListRecordsTests(unittest.TestCase):
         repo = repository.Repository(meta, ds, setsreg, 10,
                 datestamp_validator)
 
-        req = 'verb=ListRecords&from=2000-01-01&until=2002-01-01T00:00:00Z'
+        req = 'verb=ListIdentifiers&from=2000-01-01&until=2002-01-01T00:00:00Z'
         result = repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
 
@@ -766,9 +766,24 @@ class ListRecordsTests(unittest.TestCase):
         repo = repository.Repository(meta, ds, setsreg, 10,
                 datestamp_validator)
 
-        req = 'verb=ListRecords&from=2003-01-01&until=2002-01-01'
+        req = 'verb=ListIdentifiers&from=2003-01-01&until=2002-01-01'
         result = repo.handle_request(req)
         self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+
+
+class ListMetadataFormatsTests(unittest.TestCase):
+    def test_arg_identifier_is_allowed(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        setsreg = sets.SetsRegistry(ds, [])
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListMetadataFormats&identifier=S1676-56482005000100001'
+        result = repo.handle_request(req)
+        self.assertFalse('<error code="badArgument"/>'.encode('utf-8') in result)
 
 
 class oairequest_from_querystringTests(unittest.TestCase):
@@ -941,6 +956,82 @@ class check_listrecords_argsTests(unittest.TestCase):
 
     def test_verb_and_resumptiontoken_nand_anyfilter(self):
         self.assertTrue(repository.check_listrecords_args(
+            ['verb', 'resumptionToken']))
+
+
+class check_listmetadataformats_argsTests(unittest.TestCase):
+    def test_verb_is_missing(self):
+        self.assertFalse(repository.check_listmetadataformats_args([]))
+
+    def test_verb_nand_resumptiontoken_and_metadataprefix(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'metadataPrefix']))
+
+    def test_verb_nand_resumptiontoken_nand_metadataprefix(self):
+        self.assertTrue(repository.check_listmetadataformats_args(['verb']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case1(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'from', 'until', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case2(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'from', 'until', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case3(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'from', 'until', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case4(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'from', 'until']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case5(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'from', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case6(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'from', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case7(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'from', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case8(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'from']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case9(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'until', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case10(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'until', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case11(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'until', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case12(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'until']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case13(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'set', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case14(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'set']))
+
+    def test_verb_and_resumptiontoken_and_anythingelse_case15(self):
+        self.assertFalse(repository.check_listmetadataformats_args(
+            ['verb', 'resumptionToken', 'metadataPrefix']))
+
+    def test_verb_and_resumptiontoken_nand_anyfilter(self):
+        self.assertTrue(repository.check_listmetadataformats_args(
             ['verb', 'resumptionToken']))
 
 
