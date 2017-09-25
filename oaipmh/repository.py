@@ -341,21 +341,30 @@ class Repository:
         LOGGER.info('handling OAI request: %s', repr(oairequest))
 
         if has_illegal_args(parsed_qstr) or has_repeated_args(parsed_qstr):
-            return serialize_bad_argument(self.metadata, oairequest)
+            return serialize_bad_argument(self.metadata,
+                    self.clean_oairequest(oairequest))
 
         try:
             verb = self.verbs[oairequest.verb]
         except KeyError:
-            return serialize_bad_verb(self.metadata, oairequest)
+            return serialize_bad_verb(self.metadata,
+                    self.clean_oairequest(oairequest))
 
         try:
             return verb(oairequest)
         except (BadArgumentError, SetNameError):
-            return serialize_bad_argument(self.metadata, oairequest)
+            return serialize_bad_argument(self.metadata,
+                    self.clean_oairequest(oairequest))
         except datastores.DoesNotExistError:
             return serialize_id_does_not_exist(self.metadata, oairequest)
         except BadResumptionTokenError:
             return serialize_bad_resumption_token(self.metadata, oairequest)
+
+    def clean_oairequest(self, oairequest: OAIRequest):
+        """Remove valores inválidos de oairequest.
+        """
+        return clean_oairequest_dates(clean_oairequest_verb(oairequest),
+                self.granularity_validator)
 
     @check_request_args(functools.partial(are_equal, ['verb']))
     def identify(self, oairequest: OAIRequest) -> bytes:
@@ -440,6 +449,23 @@ class Repository:
         next_token = next_resumption_token(token, sets_list)
         return serialize_list_sets(self.metadata, oairequest, sets_list,
                 next_token)
+
+
+def clean_oairequest_verb(oairequest: OAIRequest):
+    new_values = {}
+    if oairequest.verb not in ['Identify', 'ListSets', 'ListRecords',
+            'ListMetadataFormats', 'ListIdentifiers', 'GetRecord']:
+        new_values['verb'] = None
+    return oairequest._replace(**new_values)
+
+
+def clean_oairequest_dates(oairequest: OAIRequest, validator):
+    new_values = {}
+    if oairequest.from_ and not validator(oairequest.from_):
+        new_values['from_'] = None
+    if oairequest.until and not validator(oairequest.until):
+        new_values['until'] = None
+    return oairequest._replace(**new_values)
 
 
 def get_resumption_token_from_request(oairequest: OAIRequest,

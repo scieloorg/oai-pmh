@@ -647,7 +647,8 @@ class RepositoryTests(unittest.TestCase):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
         setsreg = sets.SetsRegistry(ds, [])
-        datestamp_validator = lambda x: True
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
         self.repository = repository.Repository(meta, ds, setsreg, 10,
                 datestamp_validator)
 
@@ -665,6 +666,16 @@ class RepositoryTests(unittest.TestCase):
         req = 'verb=InvalidVerb'
         result = self.repository.handle_request(req)
         self.assertTrue('<error code="badVerb">'.encode('utf-8') in result)
+        #verbo ilegal não deve ser valor de request/@verb
+        self.assertTrue('<request>'.encode('utf-8') in result)
+
+
+    def test_handling_invalid_utcdatetimetypes(self):
+        req = 'verb=ListRecords&from=foo'
+        result = self.repository.handle_request(req)
+        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        #verbo ilegal não deve ser valor de request/@verb
+        self.assertTrue('<request verb="ListRecords">'.encode('utf-8') in result)
 
 
 class ListIdentifiersTests(unittest.TestCase):
