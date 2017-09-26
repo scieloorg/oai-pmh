@@ -436,7 +436,6 @@ class Repository:
         return serialize_list_identifiers(self.metadata, oairequest, resources,
                 next_token)
 
-    #@check_request_args(functools.partial(are_equal, ['verb']))
     @check_request_args(check_listmetadataformats_args)
     def list_metadata_formats(self, oairequest: OAIRequest) -> bytes:
         fmts = [fmt['metadata'] for fmt in self.formats.values()]
