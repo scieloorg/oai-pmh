@@ -8,8 +8,9 @@ from oaipmh import articlemeta, entities
 class ArticleMetaStub:
     publisher_id = 'S2179-975X2011000300002'
     processing_date = '2012-04-19'
-    electronic_issn = None
-    print_issn = None
+
+    def any_issn(self):
+        return '2179-975X'
 
     def original_language(self):
         return 'en'
@@ -61,7 +62,7 @@ class ResourceFacadeTests(unittest.TestCase):
                 self.resource_fac.datestamp())
 
     def test_setspec(self):
-        self.assertEqual([],
+        self.assertEqual(['2179-975X'],
                 self.resource_fac.setspec())
 
     def test_original_title_comes_first(self):
@@ -137,4 +138,18 @@ class ArticleMetaTests(unittest.TestCase):
 
         am = articlemeta.ArticleMeta(ClientStub())
         self.assertIsInstance(am.get('validID'), entities.Resource)
+
+
+class VirtualOffsetTranslationTests(unittest.TestCase):
+    def test_case_1(self):
+        self.assertEqual(articlemeta.translate_virtual_offset(10, 0), 0)
+
+    def test_case_2(self):
+        self.assertEqual(articlemeta.translate_virtual_offset(10, 0), 0)
+
+    def test_case_3(self):
+        self.assertEqual(articlemeta.translate_virtual_offset(150, 0), 0)
+
+    def test_case_4(self):
+        self.assertEqual(articlemeta.translate_virtual_offset(150, 101), 0)
 

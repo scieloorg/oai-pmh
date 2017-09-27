@@ -646,7 +646,7 @@ class RepositoryTests(unittest.TestCase):
     def setUp(self):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
+        setsreg = sets.InMemory()
         datestamp_validator = lambda x: re.fullmatch(
                 r'^(\d{4})-(\d{2})-(\d{2})$', x)
         self.repository = repository.Repository(meta, ds, setsreg, 10,
@@ -697,7 +697,7 @@ class ListIdentifiersTests(unittest.TestCase):
     def setUp(self):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
+        setsreg = sets.InMemory()
         datestamp_validator = lambda x: re.fullmatch(
                 r'^(\d{4})-(\d{2})-(\d{2})$', x)
         self.repo = repository.Repository(meta, ds, setsreg, 10,
@@ -750,7 +750,7 @@ class ListRecordsTests(unittest.TestCase):
     def setUp(self):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
+        setsreg = sets.InMemory()
         datestamp_validator = lambda x: re.fullmatch(
                 r'^(\d{4})-(\d{2})-(\d{2})$', x)
         self.repo = repository.Repository(meta, ds, setsreg, 10,
@@ -788,7 +788,7 @@ class ListMetadataFormatsTests(unittest.TestCase):
     def test_arg_identifier_is_allowed(self):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
-        setsreg = sets.SetsRegistry(ds, [])
+        setsreg = sets.InMemory()
         datestamp_validator = lambda x: re.fullmatch(
                 r'^(\d{4})-(\d{2})-(\d{2})$', x)
         repo = repository.Repository(meta, ds, setsreg, 10,

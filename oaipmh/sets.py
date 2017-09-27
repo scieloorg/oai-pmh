@@ -13,87 +13,60 @@ Deve ser possível:
   * Consultar os registros contidos em um conjunto;
   
 """
+import abc
 import itertools
+from typing import (
+        Callable,
+        Iterable,
+        Tuple,
+        )
 from collections import OrderedDict
 
-from .articlemeta import ArticleMetaFilteredView
 from .entities import Set
 from .datastores import DoesNotExistError  
 
 
-class SetsRegistry:
+class SetsRegistry(metaclass=abc.ABCMeta):
     """O registro de ``Set``s da aplicação.
-
-    :param ds: instância de ``oaipmh.datastores.DataStore``.
-    :param static_defs: lista associativa de objetos ``Set`` e funções ``view``.
     """
-    def __init__(self, ds, static_defs):
-        self.ds = ds
-        self.static_sets = [s for s, _ in static_defs]
-        self.static_views = {s.setSpec: v for s, v in static_defs}
+    @abc.abstractmethod
+    def add(self, metadata: Set, view: Callable[[Callable], Callable]) -> None:
+        """Registra os conjuntos suportados pelo repositório.
 
-    def list(self, offset, count):
+        :param metadata: descreve o conjunto.
+        :param view: função de ordem superior passada como argumento para o método
+        ``DataStore.list``, responsável por receber e produzir a função de
+        consulta aos dados dos recursos.
+        """
+        return NotImplemented
+
+    @abc.abstractmethod
+    def list(self, offset: int, count: int) -> Iterable[Set]:
         """Retorna sequência com ``count`` instâncias de ``Set`` à partir de
         ``offset``.
         """
-        static_part = self.static_sets[offset:offset+count]
-        if len(static_part) < count:
-            dynamic_part = get_sets_from_journals(self.ds,
-                    translate_virtual_offset(len(self.static_sets), offset),
-                    count - len(static_part))
-        else:
-            dynamic_part = []
+        return NotImplemented
 
-        return itertools.chain(static_part, dynamic_part)
+    @abc.abstractmethod
+    def get_view(self, setspec: str) -> Tuple[Callable, Callable]:
+        """Retorna a função ``view`` associada ao ``setspec``.
+        """
+        return NotImplemented
+
+
+class InMemory(SetsRegistry):
+    def __init__(self):
+        self.sets = OrderedDict()
+
+    def add(self, metadata, view):
+        self.sets[metadata.setSpec] = (metadata, view)
+
+    def list(self, offset, count):
+        return list(self.sets.values())[offset:offset+count]
 
     def get_view(self, setspec):
-        """Retorna a ``view`` associada ao ``setspec``.
-        """
         try:
-            return self.static_views[setspec]
+            return self.sets[setspec][1]
         except KeyError:
-            try:
-                return get_view_for_journal_set(get_set_from_journal(self.ds, setspec))
-            except DoesNotExistError:
-                return None
-
-
-def translate_virtual_offset(size, offset):
-    """Despreza o intervalo ``size`` em ``offset`` correspondente aos sets
-    estáticos, retornando um novo ``offset`` que pode ser utilizado na consulta
-    aos sets dinâmicos.
-    """
-    real_offset = offset - size 
-    if real_offset <= 0:
-        return 0
-    else:
-        return real_offset
-
-
-def get_sets_from_journals(ds, offset, count):
-    """Sequência de ``Set`` à partir de periódicos da fonte de dados ``ds``.
-    """
-    journals = ds.list_journals(offset, count)
-    return (map_journal_to_set(j) for j in journals)
-
-
-def get_set_from_journal(ds, issn):
-    """``Set`` à partir de periódico da fonte de dados ``ds``.
-    """
-    journal = ds.get_journal(issn)
-    return map_journal_to_set(journal)
-
-
-def map_journal_to_set(journal):
-    """``Set`` à partir de ``oaipmh.datastores.Journal``.
-    """
-    return Set(setSpec=journal.lead_issn, setName=journal.title)
-
-
-def get_view_for_journal_set(set_):
-    """Obtém uma função ``view`` que aplica filtro por registros do periódico
-    representado por ``set_``.
-    """
-    view = ArticleMetaFilteredView({'code_title': set_.setSpec})
-    return view
+            return None
 

@@ -1,13 +1,25 @@
-from collections import namedtuple
+from collections import (
+        namedtuple,
+        OrderedDict,
+        )
 import datetime
 import functools
+import itertools
 import json
 
 from articlemeta import client as articlemeta_client
 
 from . import utils
-from .datastores import DataStore, DoesNotExistError, identityview
-from .entities import Resource
+from .datastores import (
+        DataStore,
+        DoesNotExistError,
+        identityview,
+        )
+from .sets import SetsRegistry
+from .entities import (
+        Resource,
+        Set,
+        )
 
 
 Journal = namedtuple('Journal', '''title lead_issn''')
@@ -305,4 +317,81 @@ class ArticleMeta(DataStore):
     def list_journals(self, offset=0, count=1000):
         journals = self.client.journals(offset=offset, limit=count)
         return (journal_from_articlemeta(j) for j in journals)
+
+
+class ArticleMetaSetsRegistry(SetsRegistry):
+    """Implementa ``SetsRegistry`` com "sets virtuais" baseados em registros
+    e estratégias de consulta ao ``DataStore``.
+
+    :param datastore: instância de ``oaipmh.datastores.DataStore``.
+    """
+    def __init__(self, datastore, **kwargs):
+        self.ds = datastore
+        self.sets = OrderedDict()
+
+    def add(self, metadata, view):
+        self.sets[metadata.setSpec] = (metadata, view)
+
+    def list(self, offset, count):
+        static_part = [meta for meta, _ in self.sets.values()][offset:offset+count]
+        if len(static_part) < count:
+            dynamic_part = get_sets_from_journals(self.ds,
+                    translate_virtual_offset(len(self.sets), offset),
+                    count - len(static_part))
+        else:
+            dynamic_part = []
+
+        return itertools.chain(static_part, dynamic_part)
+
+    def get_view(self, setspec):
+        try:
+            _, view = self.sets[setspec]
+        except KeyError:
+            try:
+                return get_view_for_journal_set(get_set_from_journal(self.ds,
+                    setspec))
+            except DoesNotExistError:
+                return None
+
+        return view
+
+
+def translate_virtual_offset(size, offset):
+    """Despreza o intervalo ``size`` em ``offset`` correspondente aos sets
+    estáticos, retornando um novo ``offset`` que pode ser utilizado na consulta
+    aos sets dinâmicos.
+    """
+    real_offset = offset - size 
+    if real_offset <= 0:
+        return 0
+    else:
+        return real_offset
+
+
+def get_sets_from_journals(ds, offset, count):
+    """Sequência de ``Set`` à partir de periódicos da fonte de dados ``ds``.
+    """
+    journals = ds.list_journals(offset, count)
+    return (map_journal_to_set(j) for j in journals)
+
+
+def get_set_from_journal(ds, issn):
+    """``Set`` à partir de periódico da fonte de dados ``ds``.
+    """
+    journal = ds.get_journal(issn)
+    return map_journal_to_set(journal)
+
+
+def map_journal_to_set(journal):
+    """``Set`` à partir de ``oaipmh.datastores.Journal``.
+    """
+    return Set(setSpec=journal.lead_issn, setName=journal.title)
+
+
+def get_view_for_journal_set(set_):
+    """Obtém uma função ``view`` que aplica filtro por registros do periódico
+    representado por ``set_``.
+    """
+    view = ArticleMetaFilteredView({'code_title': set_.setSpec})
+    return view
 

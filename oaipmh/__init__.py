@@ -106,13 +106,21 @@ def get_granularity_validator(settings):
     return validate
 
 
+def get_setsregistry(settings):
+    registry = articlemeta.ArticleMetaSetsRegistry(
+            datastore=get_datastore(settings))
+    for metadata, view in STATIC_SETS:
+        registry.add(metadata, view)
+    return registry
+
+
 def add_oai_repository(event):
     settings = event.request.registry.settings
-    ds = get_datastore(settings)
 
     event.request.repository = repository.Repository(
-            settings['repository_meta'], ds, sets.SetsRegistry(ds, STATIC_SETS),
-            settings['oaipmh.listslen'], get_granularity_validator(settings))
+            settings['repository_meta'], get_datastore(settings),
+            get_setsregistry(settings),  settings['oaipmh.listslen'],
+            get_granularity_validator(settings))
 
     for metadata, formatter, augmenter in METADATA_FORMATS:
         event.request.repository.add_metadataformat(metadata, formatter,
