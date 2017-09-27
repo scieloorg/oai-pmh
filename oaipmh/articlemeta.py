@@ -142,9 +142,7 @@ class ArticleResourceFacade:
         return utils.parse_date(self.article.processing_date)
 
     def setspec(self):
-        return [issn for issn in [getattr(self.article, attr)
-                  for attr in ['electronic_issn', 'print_issn']]
-                if issn]
+        return [self.article.any_issn()]
 
     def title(self):
         art = self.article
