@@ -655,17 +655,17 @@ class RepositoryTests(unittest.TestCase):
     def test_handling_req_with_illegal_args(self):
         req = 'verb=Identify&illegalarg=foo'
         result = self.repository.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
 
     def test_handling_req_with_repeated_args(self):
         req = 'verb=Identify&verb=Identify'
         result = self.repository.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
 
     def test_handling_req_to_invalid_verb(self):
         req = 'verb=InvalidVerb'
         result = self.repository.handle_request(req)
-        self.assertTrue('<error code="badVerb">'.encode('utf-8') in result)
+        self.assertTrue('<error code="badVerb"'.encode('utf-8') in result)
         #verbo ilegal não deve ser valor de request/@verb
         self.assertTrue('<request>'.encode('utf-8') in result)
 
@@ -673,7 +673,7 @@ class RepositoryTests(unittest.TestCase):
     def test_handling_invalid_utcdatetimetypes(self):
         req = 'verb=ListRecords&from=foo'
         result = self.repository.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
         #verbo ilegal não deve ser valor de request/@verb
         self.assertTrue('<request verb="ListRecords">'.encode('utf-8') in result)
 
@@ -708,27 +708,27 @@ class ListIdentifiersTests(unittest.TestCase):
     def test_wrong_granularity_in_from_arg(self):
         req = 'verb=ListIdentifiers&from=2002-01-01T00:00:00Z'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
         
     def test_wrong_granularity_in_until_arg(self):
         req = 'verb=ListIdentifiers&until=2002-01-01T00:00:00Z'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
         
     def test_when_from_and_until_granularities_are_different(self):
         req = 'verb=ListIdentifiers&from=2000-01-01&until=2002-01-01T00:00:00Z'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
 
     def test_when_from_is_greater_than_until(self):
         req = 'verb=ListIdentifiers&from=2003-01-01&until=2002-01-01'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
 
     def test_empty_list_returns_norecordsmatch_error(self):
         req = 'verb=ListIdentifiers&metadataPrefix=oai_dc'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="noRecordsMatch"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="noRecordsMatch"'.encode('utf-8') in result)
 
 
 class ListRecordsTests(unittest.TestCase):
@@ -761,31 +761,46 @@ class ListRecordsTests(unittest.TestCase):
     def test_wrong_granularity_in_from_arg(self):
         req = 'verb=ListRecords&from=2002-01-01T00:00:00Z'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
         
     def test_wrong_granularity_in_until_arg(self):
         req = 'verb=ListRecords&until=2002-01-01T00:00:00Z'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
         
     def test_when_from_and_until_granularities_are_different(self):
         req = 'verb=ListRecords&from=2000-01-01&until=2002-01-01T00:00:00Z'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
 
     def test_when_from_is_greater_than_until(self):
         req = 'verb=ListRecords&from=2003-01-01&until=2002-01-01'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="badArgument"'.encode('utf-8') in result)
 
     def test_empty_list_returns_norecordsmatch_error(self):
         req = 'verb=ListRecords&metadataPrefix=oai_dc'
         result = self.repo.handle_request(req)
-        self.assertTrue('<error code="noRecordsMatch"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="noRecordsMatch"'.encode('utf-8') in result)
 
 
 class ListMetadataFormatsTests(unittest.TestCase):
     def test_arg_identifier_is_allowed(self):
+        meta = factories.get_sample_repositorymeta()
+        ds = datastores.InMemory()
+        resource = factories.get_sample_resource()
+        ds.add(resource)
+        setsreg = sets.InMemory()
+        datestamp_validator = lambda x: re.fullmatch(
+                r'^(\d{4})-(\d{2})-(\d{2})$', x)
+        repo = repository.Repository(meta, ds, setsreg, 10,
+                datestamp_validator)
+
+        req = 'verb=ListMetadataFormats&identifier=%s' % resource.ridentifier
+        result = repo.handle_request(req)
+        self.assertFalse('<error code="badArgument"'.encode('utf-8') in result)
+
+    def test_unknown_identifier_returns_iddoesnotexist_error(self):
         meta = factories.get_sample_repositorymeta()
         ds = datastores.InMemory()
         setsreg = sets.InMemory()
@@ -794,9 +809,9 @@ class ListMetadataFormatsTests(unittest.TestCase):
         repo = repository.Repository(meta, ds, setsreg, 10,
                 datestamp_validator)
 
-        req = 'verb=ListMetadataFormats&identifier=S1676-56482005000100001'
+        req = 'verb=ListMetadataFormats&identifier=unknownid'
         result = repo.handle_request(req)
-        self.assertFalse('<error code="badArgument"/>'.encode('utf-8') in result)
+        self.assertTrue('<error code="idDoesNotExist"'.encode('utf-8') in result)
 
 
 class oairequest_from_querystringTests(unittest.TestCase):

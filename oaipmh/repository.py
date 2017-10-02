@@ -438,6 +438,8 @@ class Repository:
 
     @check_request_args(check_listmetadataformats_args)
     def list_metadata_formats(self, oairequest: OAIRequest) -> bytes:
+        if oairequest.identifier:
+            _ = self.ds.get(oairequest.identifier)
         fmts = [fmt['metadata'] for fmt in self.formats.values()]
         return serialize_list_metadata_formats(self.metadata, oairequest, fmts)
 

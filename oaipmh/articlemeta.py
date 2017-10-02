@@ -287,6 +287,8 @@ class ArticleMetaFilteredView:
 
 
 class ArticleMeta(DataStore):
+    """Adapta ``client`` para a interface de ``DataStore``.
+    """
     def __init__(self, client: BoundArticleMetaClient):
         self.client = client
 
