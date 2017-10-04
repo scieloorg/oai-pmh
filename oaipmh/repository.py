@@ -413,7 +413,7 @@ class Repository:
                 metadata_formatter=fmt['formatter'])
 
     def query_resources_by_token(self, token: ResumptionToken):
-        if token.set is not None:
+        if token.set:
             view = self.setsreg.get_view(token.set)
             if view is None:
                 raise exceptions.BadArgumentError('cannot find a view for set "%s"', token.set)
