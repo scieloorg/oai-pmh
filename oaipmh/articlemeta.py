@@ -143,12 +143,21 @@ def get_articlemeta_client(collection, **kwargs):
     return adaptedclient
 
 
+class ResourceRIdCodec:
+    def encode(self, ridentifier):
+        return 'oai:scielo:%s' % ridentifier
+
+    def decode(self, ridentifier):
+        return ridentifier.replace('oai:scielo:', '')
+
+
 class ArticleResourceFacade:
-    def __init__(self, article):
+    def __init__(self, article, rid_codec=None):
         self.article = article
+        self.rid_codec = rid_codec or ResourceRIdCodec()
 
     def ridentifier(self):
-        return self.article.publisher_id
+        return self.rid_codec.encode(self.article.publisher_id)
 
     def datestamp(self):
         return utils.parse_date(self.article.processing_date)
@@ -289,17 +298,19 @@ class ArticleMetaFilteredView:
 class ArticleMeta(DataStore):
     """Adapta ``client`` para a interface de ``DataStore``.
     """
-    def __init__(self, client: BoundArticleMetaClient):
+    def __init__(self, client: BoundArticleMetaClient, rid_codec=None):
         self.client = client
+        self.rid_codec = rid_codec or ResourceRIdCodec()
 
     def add(self, resource):
         return NotImplemented
 
     def get(self, ridentifier):
-        doc = self.client.document(ridentifier)
+        decoded_rid = self.rid_codec.decode(ridentifier)
+        doc = self.client.document(decoded_rid)
         if is_spurious_doc(doc):
             raise DoesNotExistError()
-        return ArticleResourceFacade(doc).to_resource()
+        return ArticleResourceFacade(doc, self.rid_codec).to_resource()
 
     def list(self, offset, count, view=None, _from=None, until=None):
         view_fn = view or identityview
@@ -307,7 +318,7 @@ class ArticleMeta(DataStore):
 
         docs = query_fn(offset=offset, limit=count,
                 from_date=_from, until_date=until)
-        return (ArticleResourceFacade(doc).to_resource()
+        return (ArticleResourceFacade(doc, self.rid_codec).to_resource()
                 for doc in docs)
 
     def get_journal(self, issn):

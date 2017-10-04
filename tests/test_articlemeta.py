@@ -54,7 +54,7 @@ class ResourceFacadeTests(unittest.TestCase):
         self.resource_fac = articlemeta.ArticleResourceFacade(self.article)
 
     def test_ridentifier(self):
-        self.assertEqual('S2179-975X2011000300002',
+        self.assertEqual('oai:scielo:S2179-975X2011000300002',
                 self.resource_fac.ridentifier())
 
     def test_datestamp(self):
