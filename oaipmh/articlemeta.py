@@ -165,22 +165,26 @@ class ArticleResourceFacade:
     def setspec(self):
         return [self.article.any_issn()]
 
+    def _translated_titles(self):
+        transtitles = self.article.translated_titles()
+        return transtitles or {}
+
     def title(self):
         art = self.article
         titles = [(art.original_language(), art.original_title())]
 
-        translated_titles = art.translated_titles()
+        translated_titles = self._translated_titles()
         if translated_titles:
             titles += translated_titles.items()
         return titles
 
-    def creator(self):
+    def _authors(self):
         authors = self.article.authors
-        if authors:
-            return [', '.join([author.get('surname', ''), author.get('given_names', '')])
-                    for author in authors]
-        else:
-            return []
+        return authors or {}
+
+    def creator(self):
+        return [', '.join([author.get('surname', ''), author.get('given_names', '')])
+                for author in self._authors()]
 
     def subject(self):
         subjects = []
@@ -224,10 +228,14 @@ class ArticleResourceFacade:
         html_url = self.article.html_url()
         return [html_url]
 
+    def _bibliographic_legends(self):
+        biblegends = self.article.bibliographic_legends()
+        return biblegends or {}
+
     def source(self):
         """Algo tipo: ['Revista de Microbiologia v.29 n.3 1998']
         """
-        return [self.article.bibliographic_legends().get('descriptive_format')]
+        return [self._bibliographic_legends().get('descriptive_format')]
 
     def language(self):
         lang = self.article.original_language()
@@ -236,8 +244,12 @@ class ArticleResourceFacade:
     def relation(self):
         return []
 
+    def _permissions(self):
+        perms = self.article.permissions
+        return perms or {}
+
     def rights(self):
-        license_url = self.article.permissions.get('url', '')
+        license_url = self._permissions().get('url', '')
         return [license_url]
 
     def to_resource(self):
