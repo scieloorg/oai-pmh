@@ -1,4 +1,3 @@
-import re
 import functools
 import itertools
 import operator
@@ -25,13 +24,6 @@ from .entities import (
 
 
 LOGGER = logging.getLogger(__name__)
-
-
-RESUMPTION_TOKEN_PATTERNS = {
-        'ListRecords': re.compile(r'^(\w+)?:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:\w+$'),
-        'ListSets': re.compile(r'^:((\d{4})-(\d{2})-(\d{2}))?:((\d{4})-(\d{2})-(\d{2}))?:\d+:\d+:$'),
-        }
-RESUMPTION_TOKEN_PATTERNS['ListIdentifiers'] = RESUMPTION_TOKEN_PATTERNS['ListRecords']
 
 
 OAIPMH_LEGAL_ARGS = set(['verb', 'identifier', 'metadataPrefix', 'set',
@@ -72,7 +64,7 @@ def serialize_list_records(repo: RepositoryMeta, oai_request: OAIRequest,
     if resumption_token is None:
         encoded_resumption_token = ''
     else:
-        encoded_resumption_token = encode_resumption_token(resumption_token)
+        encoded_resumption_token = resumption_token.encode()
 
     data = {
             'repository': asdict(repo),
@@ -90,7 +82,7 @@ def serialize_list_identifiers(repo: RepositoryMeta, oai_request: OAIRequest,
     if resumption_token is None:
         encoded_resumption_token = ''
     else:
-        encoded_resumption_token = encode_resumption_token(resumption_token)
+        encoded_resumption_token = resumption_token.encode()
 
     data = {
             'repository': asdict(repo),
@@ -120,7 +112,7 @@ def serialize_list_sets(repo: RepositoryMeta, oai_request: OAIRequest,
     if resumption_token is None:
         encoded_resumption_token = ''
     else:
-        encoded_resumption_token = encode_resumption_token(resumption_token)
+        encoded_resumption_token = resumption_token.encode()
 
     data = {
             'repository': asdict(repo),
@@ -298,7 +290,8 @@ def is_empty_resultset(resultset: Iterable) -> bool:
 class Repository:
     def __init__(self, metadata: RepositoryMeta, ds: datastores.DataStore,
             setsreg: sets.SetsRegistry, listslen: int,
-            granularity_validator: Callable):
+            granularity_validator: Callable,
+            resumption_token_factory=ResumptionToken):
         self.metadata = metadata
         self.ds = ds
         self.setsreg = setsreg
@@ -313,6 +306,7 @@ class Repository:
                 'ListMetadataFormats': self.list_metadata_formats,
                 'ListSets': self.list_sets,
                 }
+        self.resumption_token_factory = resumption_token_factory
 
     def add_metadataformat(self, metadata: MetadataFormat, formatter, augmenter):
         """Registra formatos de metadados suportados pelo repositório.
@@ -439,12 +433,13 @@ class Repository:
             if oairequest.metadataPrefix not in self.formats:
                 raise exceptions.CannotDisseminateFormatError()
 
-        token = get_resumption_token_from_request(oairequest, self.listslen)
+        token = self.resumption_token_factory.new_from_request(
+                oairequest, self.listslen)
         fmt = self.formats[token.metadataPrefix]
         resources = list((fmt['augmenter'](r)
                           for r in self.query_resources_by_token(token)))
 
-        next_token = next_resumption_token(token, resources)
+        next_token = token.next(resources)
         return serialize_list_records(self.metadata, oairequest, resources,
                 next_token, metadata_formatter=fmt['formatter'])
 
@@ -454,10 +449,11 @@ class Repository:
             if oairequest.metadataPrefix not in self.formats:
                 raise exceptions.CannotDisseminateFormatError()
 
-        token = get_resumption_token_from_request(oairequest, self.listslen)
+        token = self.resumption_token_factory.new_from_request(
+                oairequest, self.listslen)
         resources = list(self.query_resources_by_token(token))
 
-        next_token = next_resumption_token(token, resources)
+        next_token = token.next(resources)
         return serialize_list_identifiers(self.metadata, oairequest, resources,
                 next_token)
 
@@ -471,9 +467,10 @@ class Repository:
 
     @check_request_args(check_listsets_args)
     def list_sets(self, oairequest: OAIRequest) -> bytes:
-        token = get_resumption_token_from_request(oairequest, self.listslen)
+        token = self.resumption_token_factory.new_from_request(
+                oairequest, self.listslen)
         sets_list = list(self.setsreg.list(int(token.offset), int(token.count)))
-        next_token = next_resumption_token(token, sets_list)
+        next_token = token.next(sets_list)
         return serialize_list_sets(self.metadata, oairequest, sets_list,
                 next_token)
 
@@ -493,94 +490,4 @@ def clean_oairequest_dates(oairequest: OAIRequest, validator):
     if oairequest.until and not validator(oairequest.until):
         new_values['until'] = None
     return oairequest._replace(**new_values)
-
-
-def get_resumption_token_from_request(oairequest: OAIRequest,
-        default_count: int) -> ResumptionToken:
-    """Obtém um ``ResumptionToken`` à partir do ``oairequest``.
-
-    Caso o token não seja válido sintaticamente ou o valor do atributo ``count``
-    seja diferente de ``default_count``, levanta a exceção ``BadResumptionToken``;
-    Retorna um novo ``ResumptionToken`` caso não haja um codificado no
-    ``oairequest``.
-    """
-    if oairequest.resumptionToken:
-        pattern = RESUMPTION_TOKEN_PATTERNS[oairequest.verb]
-        if not is_valid_resumption_token(oairequest.resumptionToken, pattern):
-            raise exceptions.BadResumptionTokenError()
-
-        token = decode_resumption_token(oairequest.resumptionToken)
-        if int(token.count) != default_count:
-            raise exceptions.BadResumptionTokenError('token count is different than ``oaipmh.listslen``')
-    else:
-        token = ResumptionToken(set=oairequest.set, from_=oairequest.from_,
-                until=oairequest.until, offset='0', count=str(default_count),
-                metadataPrefix=oairequest.metadataPrefix)
-
-    return token
-
-
-def encode_resumption_token(token: ResumptionToken) -> str:
-    """Codifica o ``token`` em string delimitada por ``:``.
-
-    Durante a codificação, todos os valores serão transformados em ``str``.
-    ``None`` será transformado em string vazia. 
-
-    É importante ter em mente que o processo de codificação faz com que os
-    tipos originais dos valores sejam perdidos, i.e., não é um processo
-    reversível.
-    """
-    def ensure_str(obj):
-        if obj is None:
-            return ''
-        else:
-            try:
-                return str(obj)
-            except:
-                return ''
-
-    parts = [ensure_str(part) for part in token]
-    return ':'.join(parts)
-
-
-def decode_resumption_token(token: str) -> ResumptionToken:
-    keys = ResumptionToken._fields
-    values = token.split(':')
-    kwargs = dict(zip(keys, values))
-    return ResumptionToken(**kwargs)
-
-
-def inc_resumption_token(token: ResumptionToken) -> ResumptionToken:
-    """Avança o offset do token.
-    """
-    token_map = token._asdict()
-    new_offset = 1 + int(token_map['offset']) + int(token_map['count'])
-    token_map['offset'] = str(new_offset)
-    return ResumptionToken(**token_map)
-
-
-def has_more_resources(resources: Iterable, batch_size: int) -> bool:
-    """Verifica se ``resources`` completa a lista de recursos.
-
-    Se a quantidade de itens em ``resources`` for menor do que ``batch_size``, 
-    consideramos se tratar do último conjunto de resultados. Caso a 
-    quantidade seja igual, consideramos que existirá o próximo conjunto.
-    """
-    return len(resources) == int(batch_size)
-
-
-def next_resumption_token(token: ResumptionToken, resources: Iterable) -> ResumptionToken:
-    """Retorna o próximo resumption token com base no atual e seq de
-    ``resources`` resultado da requisição corrente.
-    """
-    if has_more_resources(resources, token.count):
-        return inc_resumption_token(token)
-    else:
-        return None
-
-
-def is_valid_resumption_token(token: str, pattern: str) -> bool:
-    """Se o valor de ``token`` é válido sintaticamente.
-    """
-    return bool(pattern.fullmatch(token))
 

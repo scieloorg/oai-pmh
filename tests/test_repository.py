@@ -16,8 +16,8 @@ from oaipmh import (
         )
 
 
-RES_TOKEN_RECORDS = repository.RESUMPTION_TOKEN_PATTERNS['ListRecords']
-RES_TOKEN_IDENTIFIERS = repository.RESUMPTION_TOKEN_PATTERNS['ListIdentifiers']
+RES_TOKEN_RECORDS = re.compile(entities.ResumptionToken.token_patterns['ListRecords'])
+RES_TOKEN_IDENTIFIERS = re.compile(entities.ResumptionToken.token_patterns['ListIdentifiers'])
 
 
 class asdictTests(unittest.TestCase):
@@ -43,52 +43,52 @@ class asdictTests(unittest.TestCase):
                 {'foo': 'foo value_', 'bar': '_bar value'})
 
 
-class encode_resumption_tokenTests(unittest.TestCase):
+class encodeTests(unittest.TestCase):
     def test_only_str_values(self):
         token = repository.ResumptionToken(set='', from_='1998-01-01',
                 until='1998-12-31', offset='0', count='1000',
                 metadataPrefix='oai_dc')
-        self.assertEqual(repository.encode_resumption_token(token),
+        self.assertEqual(token.encode(),
                 ':1998-01-01:1998-12-31:0:1000:oai_dc')
 
     def test_empty_strings_are_ommited(self):
         token = repository.ResumptionToken(set='', from_='', until='', offset='0',
                 count='1000', metadataPrefix='oai_dc')
-        self.assertEqual(repository.encode_resumption_token(token),
+        self.assertEqual(token.encode(),
                 ':::0:1000:oai_dc')
 
     def test_integers_became_strings(self):
         token = repository.ResumptionToken(set='', from_='1998-01-01',
                 until='1998-12-31', offset=0, count=1000,
                 metadataPrefix='oai_dc')
-        self.assertEqual(repository.encode_resumption_token(token),
+        self.assertEqual(token.encode(),
                 ':1998-01-01:1998-12-31:0:1000:oai_dc')
 
     def test_nones_became_strings(self):
         token = repository.ResumptionToken(set='', from_='1998-01-01',
                 until='1998-12-31', offset=0, count=None,
                 metadataPrefix='oai_dc')
-        self.assertEqual(repository.encode_resumption_token(token),
+        self.assertEqual(token.encode(),
                 ':1998-01-01:1998-12-31:0::oai_dc')
 
 
-class decode_resumption_tokenTests(unittest.TestCase):
+class decodeTests(unittest.TestCase):
     def test_only_str_values(self):
         token = ':1998-01-01:1998-12-31:0:1000:oai_dc'
-        self.assertEqual(repository.decode_resumption_token(token),
+        self.assertEqual(repository.ResumptionToken.decode(token),
                 repository.ResumptionToken(set='', from_='1998-01-01',
                     until='1998-12-31', offset='0', count='1000',
                     metadataPrefix='oai_dc'))
 
     def test_empty_strings_are_ommited(self):
         token = ':::0:1000:oai_dc'
-        self.assertEqual(repository.decode_resumption_token(token),
+        self.assertEqual(repository.ResumptionToken.decode(token),
                 repository.ResumptionToken(set='', from_='', until='', offset='0',
                     count='1000', metadataPrefix='oai_dc'))
 
     def test_integers_became_strings(self):
         token = ':1998-01-01:1998-12-31:0:1000:oai_dc'
-        self.assertEqual(repository.decode_resumption_token(token),
+        self.assertEqual(repository.ResumptionToken.decode(token),
                 repository.ResumptionToken(set='', from_='1998-01-01',
                     until='1998-12-31', offset='0', count='1000',
                     metadataPrefix='oai_dc'))
@@ -99,7 +99,7 @@ class inc_resumption_tokenTests(unittest.TestCase):
         token = repository.ResumptionToken(set='', from_='1998-01-01',
             until='1998-12-31', offset='0', count='1000',
             metadataPrefix='oai_dc')
-        self.assertEqual(repository.inc_resumption_token(token),
+        self.assertEqual(token._incr_offset(),
                 repository.ResumptionToken(set='', from_='1998-01-01',
                     until='1998-12-31', offset='1001', count='1000',
                     metadataPrefix='oai_dc'))
@@ -108,7 +108,7 @@ class inc_resumption_tokenTests(unittest.TestCase):
         token = repository.ResumptionToken(set='', from_='1998-01-01',
             until='1998-12-31', offset='0', count='10',
             metadataPrefix='oai_dc')
-        self.assertEqual(repository.inc_resumption_token(token),
+        self.assertEqual(token._incr_offset(),
                 repository.ResumptionToken(set='', from_='1998-01-01',
                     until='1998-12-31', offset='11', count='10',
                     metadataPrefix='oai_dc'))
@@ -376,11 +376,13 @@ class ListRecordsResumptionTokenRegexpTests(unittest.TestCase):
 class isValidResumptionTokenTests(unittest.TestCase):
     def test_valid(self):
         token = ':1998-01-01:1998-01-01:0:10:oai_dc'
-        self.assertTrue(repository.is_valid_resumption_token(token, RES_TOKEN_RECORDS))
+        self.assertTrue(repository.ResumptionToken.is_valid_token(
+            token, RES_TOKEN_RECORDS))
 
     def test_invalid(self):
         token = ':1998-01-01:1998-01-01:0:10:'
-        self.assertFalse(repository.is_valid_resumption_token(token, RES_TOKEN_RECORDS))
+        self.assertFalse(repository.ResumptionToken.is_valid_token(
+            token, RES_TOKEN_RECORDS))
 
 
 class ListIdentifiersResumptionTokenRegexpTests(unittest.TestCase):
