@@ -6,6 +6,7 @@ import datetime
 import functools
 import itertools
 import json
+import logging
 
 from articlemeta import client as articlemeta_client
 
@@ -20,6 +21,9 @@ from .entities import (
         Resource,
         Set,
         )
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 Journal = namedtuple('Journal', '''title lead_issn''')
@@ -37,8 +41,13 @@ class SliceableResultSetThriftClient(articlemeta_client.ThriftClient):
         until_date = until_date or datetime.datetime.today().isoformat()[:10]
 
         try:
-            with self.client_context() as client:
-                identifiers = client.get_article_identifiers(
+            LOGGER.debug('querying ArticleMeta backend using params'
+                         ' "collection=%s", "issn=%s", "from_date=%s",'
+                         ' "until_date=%s", "limit=%s", "offset=%s",'
+                         ' "extra_filter=%s"', collection, issn, from_date,
+                         until_date, limit, offset, extra_filter)
+
+            identifiers = self.dispatcher('get_article_identifiers',
                     collection=collection, issn=issn,
                     from_date=from_date, until_date=until_date,
                     limit=limit, offset=offset,
@@ -79,8 +88,7 @@ class SliceableResultSetThriftClient(articlemeta_client.ThriftClient):
         offset = offset or 0
 
         try:
-            with self.client_context() as client:
-                identifiers = client.get_journal_identifiers(
+            identifiers = self.dispatcher('get_journal_identifiers',
                     collection=collection, issn=issn,
                     limit=limit, offset=offset)
         except self.ARTICLEMETA_THRIFT.ServerError:

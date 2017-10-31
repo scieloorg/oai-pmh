@@ -114,13 +114,21 @@ def get_setsregistry(settings):
     return registry
 
 
+def get_resultpage_factory(settings):
+    return repository.ResultPageFactory(ds=get_datastore(settings),
+            setsreg=get_setsregistry(settings),
+            listslen=settings['oaipmh.listslen'],
+            granularity_validator=get_granularity_validator(settings),
+            earliest_datestamp=settings['oaipmh.repo.earliestdatestamp'])
+
+
 def add_oai_repository(event):
     settings = event.request.registry.settings
 
     event.request.repository = repository.Repository(
-            settings['repository_meta'], get_datastore(settings),
-            get_setsregistry(settings),  settings['oaipmh.listslen'],
-            get_granularity_validator(settings))
+            get_repository_meta(settings), get_datastore(settings),
+            get_granularity_validator(settings),
+            resultpage_factory=get_resultpage_factory(settings))
 
     for metadata, formatter, augmenter in METADATA_FORMATS:
         event.request.repository.add_metadataformat(metadata, formatter,
@@ -131,9 +139,6 @@ def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
     config = Configurator(settings=parse_settings(settings))
-
-    config.registry.settings['repository_meta'] = get_repository_meta(
-            config.registry.settings)
 
     config.add_subscriber(add_oai_repository, NewRequest)
 

@@ -17,6 +17,7 @@ INSTALL_REQUIRES = [
         'pymongo >= 3.4.0',
         'lxml >= 3.8.0',
         'picles.plumber >= 0.11',
+        'articlemetaapi >= 0.23',
         ]
 TESTS_REQUIRE = []
 
