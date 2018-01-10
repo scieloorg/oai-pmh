@@ -138,7 +138,8 @@ def add_oai_repository(event):
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
-    config = Configurator(settings=parse_settings(settings))
+    settings.update(parse_settings(settings))
+    config = Configurator(settings=settings)
 
     config.add_subscriber(add_oai_repository, NewRequest)
 
