@@ -62,7 +62,7 @@ class ResourceFacadeTests(unittest.TestCase):
                 self.resource_fac.datestamp())
 
     def test_setspec(self):
-        self.assertEqual(['2179-975X'],
+        self.assertEqual([],
                 self.resource_fac.setspec())
 
     def test_original_title_comes_first(self):

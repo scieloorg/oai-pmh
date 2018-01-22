@@ -171,7 +171,9 @@ class ArticleResourceFacade:
         return utils.parse_date(self.article.processing_date)
 
     def setspec(self):
-        return [self.article.any_issn()]
+        """Não está implementado.
+        """
+        return []
 
     def _translated_titles(self):
         transtitles = self.article.translated_titles()
