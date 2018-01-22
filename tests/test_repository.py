@@ -49,6 +49,7 @@ class BaseRepositoryTests:
         resultpage_factory = repository.ResultPageFactory(ds=self.ds,
                 setsreg=self.setsreg, listslen=10,
                 granularity_validator=datestamp_validator,
+                chunk_size=3,
                 earliest_datestamp=meta.earliestDatestamp)
         self.repository = repository.Repository(meta, self.ds,
                 datestamp_validator, resultpage_factory=resultpage_factory)

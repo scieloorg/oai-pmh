@@ -459,11 +459,12 @@ def now_datestamp():
 
 class ResultPageFactory:
     def __init__(self, ds, setsreg, listslen, granularity_validator,
-            earliest_datestamp):
+            chunk_size, earliest_datestamp):
         self.ds = ds
         self.setsreg = setsreg
         self.listslen = listslen
         self.granularity_validator = granularity_validator
+        self.chunk_size = chunk_size
         self.earliest_datestamp = earliest_datestamp
 
     def __call__(self, oairequest: OAIRequest):
@@ -471,6 +472,7 @@ class ResultPageFactory:
             return RecordsResultPage(oairequest=oairequest, ds=self.ds,
                     setsreg=self.setsreg, listslen=self.listslen,
                     granularity_validator=self.granularity_validator,
+                    chunk_size=self.chunk_size,
                     earliest_datestamp=self.earliest_datestamp)
         elif oairequest.verb == 'ListSets':
             return SetsResultPage(oairequest=oairequest,
@@ -515,6 +517,7 @@ class RecordsResultPage:
             setsreg: sets.SetsRegistry, listslen: int,
             granularity_validator: Callable,
             earliest_datestamp: str,
+            chunk_size: int,
             resumption_token_factory=ChunkedResumptionToken,
             make_default_until=now_datestamp):
         self.oairequest = oairequest
@@ -525,6 +528,7 @@ class RecordsResultPage:
         self.resumption_token_factory = resumption_token_factory
         self.earliest_datestamp = earliest_datestamp
         self.make_default_until = make_default_until
+        self.chunk_size = chunk_size
 
     @utils.lazyproperty
     def _current_resumption_token(self):
@@ -538,7 +542,8 @@ class RecordsResultPage:
 
         return self.resumption_token_factory.new_from_request(self.oairequest,
                 self.listslen, default_from=default_from,
-                default_until=self.make_default_until())
+                default_until=self.make_default_until(),
+                chunk_size=self.chunk_size)
 
     def next_resumption_token(self):
         """Resumption token para obter o conjunto de dados subsequente.

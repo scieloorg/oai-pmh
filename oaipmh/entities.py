@@ -110,13 +110,13 @@ class ResumptionToken(metaclass=abc.ABCMeta):
         return int(self.count)
 
     @classmethod
-    def decode(cls: Type[TResumptionToken], token: str) -> TResumptionToken:
+    def decode(cls: Type[TResumptionToken], token: str, **kwargs) -> TResumptionToken:
         """Retorna uma instância de ``cls`` à partir da sua forma
         codificada."""
         keys = cls.attrs
         values = token.split(':')
-        kwargs = dict(zip(keys, values))
-        return cls(**kwargs)
+        token_map = dict(zip(keys, values))
+        return cls(**token_map, **kwargs)
 
     def encode(self) -> str:
         """Codifica o token em string delimitada por ``:``.
@@ -212,7 +212,8 @@ class ChunkedResumptionToken(ResumptionToken):
 
     @classmethod
     def new_from_request(cls: Type[TResumptionToken], oairequest: OAIRequest,
-            default_count: int, default_from: str, default_until: str) -> TResumptionToken:
+            default_count: int, default_from: str, default_until: str,
+            **kwargs) -> TResumptionToken:
         """Obtém um ``ResumptionToken`` à partir do ``oairequest``.
 
         Caso o token não seja válido sintaticamente ou o valor do atributo ``count``
@@ -224,7 +225,7 @@ class ChunkedResumptionToken(ResumptionToken):
             if not cls._is_valid_oairequest(oairequest):
                 raise exceptions.BadResumptionTokenError()
 
-            token = cls.decode(oairequest.resumptionToken)
+            token = cls.decode(oairequest.resumptionToken, **kwargs)
             if int(token.count) != default_count:
                 raise exceptions.BadResumptionTokenError('token count is different than ``oaipmh.listslen``')
         else:
@@ -233,7 +234,8 @@ class ChunkedResumptionToken(ResumptionToken):
                         until=oairequest.until or default_until,
                         offset='%s(0)' % (oairequest.from_ or default_from),
                         count=str(default_count),
-                        metadataPrefix=oairequest.metadataPrefix)
+                        metadataPrefix=oairequest.metadataPrefix,
+                        **kwargs)
 
         return token
 

@@ -61,6 +61,8 @@ DEFAULT_SETTINGS = [
             'scl'),
         ('oaipmh.listslen', 'OAIPMH_LISTSLEN', int,
             100),
+        ('oaipmh.chunkedresumptiontoken.chunksize',
+            'OAIPMH_CHUNKEDRESUMPTIONTOKEN_CHUNKSIZE', int, 12),
         ]
 
 
@@ -118,6 +120,7 @@ def get_resultpage_factory(settings):
     return repository.ResultPageFactory(ds=get_datastore(settings),
             setsreg=get_setsregistry(settings),
             listslen=settings['oaipmh.listslen'],
+            chunk_size=settings['oaipmh.chunkedresumptiontoken.chunksize'],
             granularity_validator=get_granularity_validator(settings),
             earliest_datestamp=settings['oaipmh.repo.earliestdatestamp'])
 
