@@ -9,6 +9,7 @@ import json
 import logging
 
 from articlemeta import client as articlemeta_client
+import xylose
 
 from . import utils
 from .datastores import (
@@ -239,7 +240,10 @@ class ArticleResourceFacade:
         return [html_url]
 
     def _bibliographic_legends(self):
-        biblegends = self.article.bibliographic_legends()
+        try:
+            biblegends = self.article.bibliographic_legends()
+        except xylose.scielodocument.UnavailableMetadataException:
+            biblegends = {}
         return biblegends or {}
 
     def source(self):

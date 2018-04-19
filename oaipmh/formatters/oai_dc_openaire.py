@@ -66,6 +66,8 @@ def fetch_pubtype_from_vocabulary(typ):
 def make_element_from_str(resource, name, tostr=str):
     elements = []
     for value in resource.get(name, []):
+        if value is None:
+            continue
         elem = etree.Element('{%s}%s' % (DC, name))
         elem.text = tostr(value)
         elements.append(elem)
