@@ -63,6 +63,8 @@ DEFAULT_SETTINGS = [
             100),
         ('oaipmh.chunkedresumptiontoken.chunksize',
             'OAIPMH_CHUNKEDRESUMPTIONTOKEN_CHUNKSIZE', int, 12),
+        ('oaipmh.articlemeta_uri', 'OAIPMH_ARTICLEMETA_URI', str,
+            'articlemeta.scielo.org:11621'),
         ]
 
 
@@ -85,7 +87,8 @@ def parse_settings(settings):
 
 
 def get_datastore(settings):
-    client = articlemeta.get_articlemeta_client(settings['oaipmh.collection'])
+    client = articlemeta.get_articlemeta_client(settings['oaipmh.collection'],
+            domain=settings['oaipmh.articlemeta_uri'])
     return articlemeta.ArticleMeta(client)
 
 
