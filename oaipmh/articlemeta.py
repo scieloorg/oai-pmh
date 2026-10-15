@@ -7,6 +7,7 @@ import functools
 import itertools
 import json
 import logging
+import re
 
 from articlemeta import client as articlemeta_client
 import xylose
@@ -25,6 +26,9 @@ from .entities import (
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+SCIELO_PID_RE = re.compile(r'^S(?P<issn>\d{4}-\d{3}[\dXx])')
 
 
 Journal = namedtuple('Journal', '''title lead_issn''')
@@ -172,9 +176,16 @@ class ArticleResourceFacade:
         return utils.parse_date(self.article.processing_date)
 
     def setspec(self):
-        """Não está implementado.
+        """Retorna o ISSN SciELO que identifica o set do periódico.
+
+        O PID é usado como fonte porque ``any_issn()`` pode retornar um ISSN
+        alternativo do periódico (por exemplo, o impresso em vez do
+        eletrônico), diferente daquele anunciado pelo ``ListSets``.
         """
-        return []
+        match = SCIELO_PID_RE.match(self.article.publisher_id or '')
+        if match is None:
+            return []
+        return [match.group('issn').upper()]
 
     def _translated_titles(self):
         transtitles = self.article.translated_titles()
@@ -321,6 +332,15 @@ class ArticleMetaFilteredView:
         return functools.partial(query_fn, extra_filter=self.term)
 
 
+class ArticleMetaJournalView:
+    """Restringe uma consulta do ArticleMeta aos artigos de um periódico."""
+    def __init__(self, issn):
+        self.issn = issn
+
+    def __call__(self, query_fn):
+        return functools.partial(query_fn, issn=self.issn)
+
+
 class ArticleMeta(DataStore):
     """Adapta ``client`` para a interface de ``DataStore``.
     """
@@ -431,6 +451,5 @@ def get_view_for_journal_set(set_):
     """Obtém uma função ``view`` que aplica filtro por registros do periódico
     representado por ``set_``.
     """
-    view = ArticleMetaFilteredView({'code_title': set_.setSpec})
+    view = ArticleMetaJournalView(set_.setSpec)
     return view
-

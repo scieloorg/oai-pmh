@@ -62,8 +62,19 @@ class ResourceFacadeTests(unittest.TestCase):
                 self.resource_fac.datestamp())
 
     def test_setspec(self):
-        self.assertEqual([],
+        self.assertEqual(['2179-975X'],
                 self.resource_fac.setspec())
+
+    def test_setspec_comes_from_scielo_pid_instead_of_any_issn(self):
+        self.article.publisher_id = 'S1676-56482007000200011'
+        self.article.any_issn = lambda: '0034-7590'
+
+        self.assertEqual(['1676-5648'], self.resource_fac.setspec())
+
+    def test_setspec_is_empty_when_publisher_id_is_not_a_scielo_pid(self):
+        self.article.publisher_id = 'invalid-id'
+
+        self.assertEqual([], self.resource_fac.setspec())
 
     def test_original_title_comes_first(self):
         titles = self.resource_fac.title()
@@ -128,6 +139,7 @@ class ResourceFacadeTests(unittest.TestCase):
     def test_resource_instantiation(self):
         resource = self.resource_fac.to_resource()
         self.assertIsInstance(resource, entities.Resource)
+        self.assertEqual(['2179-975X'], resource.setspec)
 
 
 class ArticleMetaTests(unittest.TestCase):
@@ -138,6 +150,33 @@ class ArticleMetaTests(unittest.TestCase):
 
         am = articlemeta.ArticleMeta(ClientStub())
         self.assertIsInstance(am.get('validID'), entities.Resource)
+
+
+class ArticleMetaJournalViewTests(unittest.TestCase):
+    def test_view_filters_documents_using_native_issn_argument(self):
+        calls = []
+
+        def query_fn(**kwargs):
+            calls.append(kwargs)
+            return []
+
+        view = articlemeta.ArticleMetaJournalView('1676-5648')
+        filtered_query = view(query_fn)
+        filtered_query(offset=10, limit=20)
+
+        self.assertEqual([{
+            'issn': '1676-5648',
+            'offset': 10,
+            'limit': 20,
+        }], calls)
+
+    def test_journal_set_uses_native_issn_view(self):
+        set_ = entities.Set(setSpec='1676-5648', setName='RAE eletrônica')
+
+        view = articlemeta.get_view_for_journal_set(set_)
+
+        self.assertIsInstance(view, articlemeta.ArticleMetaJournalView)
+        self.assertEqual('1676-5648', view.issn)
 
 
 class VirtualOffsetTranslationTests(unittest.TestCase):
@@ -152,4 +191,3 @@ class VirtualOffsetTranslationTests(unittest.TestCase):
 
     def test_case_4(self):
         self.assertEqual(articlemeta.translate_virtual_offset(150, 101), 0)
-
